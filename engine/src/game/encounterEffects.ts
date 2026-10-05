@@ -1,18 +1,21 @@
-import type { GameState } from "../domain/types.ts";
-import type { GameEvent } from "../events/types.ts";
+import type { GameState } from "../domain/types";
+import type { GameEvent } from "../events/types";
+import { applyEffect } from "../effects/applyEffect";
 export function resolveShockerReveal(state: GameState): {
   state: GameState;
   events: GameEvent[];
 } {
+  let currentState = state;
   const events: GameEvent[] = [];
-  const newPlayers = state.players.map((p) => {
-    events.push({
-      type: "DAMAGE_DEALT",
-      targetId: p.id,
+  for (const p of state.players) {
+    const result = applyEffect(currentState, {
+      type: "DEAL_DAMAGE",
+      target: { kind: "PLAYER", playerId: p.id },
       amount: 1,
       source: "Conmocionador",
     });
-    return { ...p, health: Math.max(0, p.health - 1) };
-  });
-  return { state: { ...state, players: newPlayers }, events };
+    currentState = result.state;
+    events.push(...result.events);
+  }
+  return { state: currentState, events };
 }
