@@ -14,3 +14,5 @@ export { runAndLog } from "../events/log";
 export type { GameState, PlayerForm } from "../domain/types";
 export type { RuleExplanation } from "../explanations/types";
 export { revealPendingCardsForPlayer } from "./revealEncounterCards";
+export { attackVillain, checkGameOutcome } from "./playerActions";
+export type { GameOutcome } from "./playerActions";
