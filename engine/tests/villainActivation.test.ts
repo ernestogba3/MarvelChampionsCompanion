@@ -35,4 +35,28 @@ describe("TC-003: activación del villano según identidad", () => {
       amount: 1,
     });
   });
+  it("los esbirros enfrentados también atacan en este paso", () => {
+    const base = createSpiderManVsRhinoGame("player-1");
+    const state = {
+      ...base,
+      players: [{ ...base.players[0], form: "HERO" as const }],
+      minions: [
+        {
+          id: "m1",
+          cardId: "01101",
+          name: "Mercenario de Hydra",
+          attack: 1,
+          scheme: 0,
+          health: 3,
+          maxHealth: 3,
+          engagedWith: "player-1",
+          tough: false,
+          guard: true,
+        },
+      ],
+    };
+    const { state: after } = resolveVillainActivation(state, "player-1");
+    expect(after.players[0].health).toBe(7);
+    expect(after.pendingEncounterDeals).toEqual(["player-1", "player-1"]);
+  });
 });

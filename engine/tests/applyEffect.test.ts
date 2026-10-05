@@ -42,4 +42,21 @@ describe("Sistema de Effects (Fase 3)", () => {
     expect(after.schemes[0].threat).toBe(1);
     expect(events).toHaveLength(2);
   });
+  it("un villano con dureza previene el daño y pierde el estado", () => {
+    const base = createSpiderManVsRhinoGame("player-1");
+    const state = { ...base, villain: { ...base.villain, tough: true } };
+    const { state: after, events } = applyEffect(state, {
+      type: "DEAL_DAMAGE",
+      target: { kind: "VILLAIN" },
+      amount: 5,
+      source: "test",
+    });
+    expect(after.villain.health).toBe(14);
+    expect(after.villain.tough).toBe(false);
+    expect(events).toContainEqual({
+      type: "STATUS_REMOVED",
+      targetId: "villain",
+      status: "TOUGH",
+    });
+  });
 });

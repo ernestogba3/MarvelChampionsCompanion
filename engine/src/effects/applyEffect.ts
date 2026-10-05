@@ -8,6 +8,14 @@ export function applyEffect(
   switch (effect.type) {
     case "DEAL_DAMAGE": {
       if (effect.target.kind === "VILLAIN") {
+        if (state.villain.tough) {
+          return {
+            state: { ...state, villain: { ...state.villain, tough: false } },
+            events: [
+              { type: "STATUS_REMOVED", targetId: "villain", status: "TOUGH" },
+            ],
+          };
+        }
         const suit = state.villain.attachments.find((a) => a.redirectsDamage);
         if (suit) {
           const newDamage = suit.damageAbsorbed + effect.amount;

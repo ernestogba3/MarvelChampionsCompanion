@@ -9,6 +9,7 @@ import {
     dealPendingEncounterCards,
     revealPendingCardsForPlayer,
     attackVillain,
+    attackMinion,
     checkGameOutcome,
     describeCurrentStep,
     explainRecentEvents,
@@ -20,6 +21,7 @@ import { loadGame, saveGame } from '../storage/gameStorage';
 export default function GameScreen() {
     const [state, setState] = useState<GameState | null>(null);
     const [damageInput, setDamageInput] = useState('');
+    const [minionDamageInputs, setMinionDamageInputs] = useState<Record<string, string>>({});
 
     useEffect(() => {
         async function load() {
@@ -52,6 +54,15 @@ export default function GameScreen() {
         if (!amount || amount <= 0) return;
         const { state: next } = runAndLog(attackVillain, state, amount);
         setDamageInput('');
+        await persist(next);
+    }
+
+    async function handleAttackMinion(minionId: string) {
+        if (!state) return;
+        const amount = parseInt(minionDamageInputs[minionId] ?? '', 10);
+        if (!amount || amount <= 0) return;
+        const { state: next } = runAndLog(attackMinion, state, minionId, amount);
+        setMinionDamageInputs((prev) => ({ ...prev, [minionId]: '' }));
         await persist(next);
     }
 
@@ -101,6 +112,7 @@ export default function GameScreen() {
     const player = state.players[0];
     const step = describeCurrentStep(state);
     const recent = explainRecentEvents(state, 3);
+    const isPlayerPhase = state.phase.name === 'PLAYER_PHASE';
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
@@ -121,13 +133,31 @@ export default function GameScreen() {
             </View>
 
             {state.minions.length > 0 && (
-                <View>
+                <View style={styles.minionsBox}>
                     <Text style={styles.label}>Esbirros</Text>
                     {state.minions.map((minion) => (
-                        <Text key={minion.id} style={styles.minionItem}>
-                            {minion.name} — {minion.health}/{minion.maxHealth}
-                            {minion.guard ? ' (Guardia)' : ''}
-                        </Text>
+                        <View key={minion.id} style={styles.minionRow}>
+                            <Text style={styles.minionItem}>
+                                {minion.name} — {minion.health}/{minion.maxHealth}
+                                {minion.guard ? ' (Guardia)' : ''}
+                            </Text>
+                            {isPlayerPhase && (
+                                <View style={styles.attackRow}>
+                                    <TextInput
+                                        style={styles.inputSmall}
+                                        keyboardType="number-pad"
+                                        value={minionDamageInputs[minion.id] ?? ''}
+                                        onChangeText={(text) =>
+                                            setMinionDamageInputs((prev) => ({ ...prev, [minion.id]: text }))
+                                        }
+                                        placeholder="Daño"
+                                    />
+                                    <Pressable style={styles.buttonSmall} onPress={() => handleAttackMinion(minion.id)}>
+                                        <Text style={styles.buttonText}>Aplicar</Text>
+                                    </Pressable>
+                                </View>
+                            )}
+                        </View>
                     ))}
                 </View>
             )}
@@ -138,7 +168,7 @@ export default function GameScreen() {
                 </Text>
             </Pressable>
 
-            {state.phase.name === 'PLAYER_PHASE' && (
+            {isPlayerPhase && (
                 <View style={styles.attackBox}>
                     <Text style={styles.label}>Atacar a Rino</Text>
                     <View style={styles.attackRow}>
@@ -202,6 +232,12 @@ const styles = StyleSheet.create({
     label: {
         fontWeight: 'bold',
     },
+    minionsBox: {
+        gap: 8,
+    },
+    minionRow: {
+        gap: 4,
+    },
     minionItem: {
         fontSize: 13,
         color: '#444',
@@ -221,8 +257,8 @@ const styles = StyleSheet.create({
     },
     buttonSmall: {
         backgroundColor: '#1a73e8',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
         borderRadius: 8,
         justifyContent: 'center',
     },
@@ -245,6 +281,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 8,
         flex: 1,
+    },
+    inputSmall: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        width: 70,
     },
     stepBox: {
         backgroundColor: '#f0f4ff',

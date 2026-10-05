@@ -36,6 +36,13 @@ export function explainEvent(event: GameEvent): RuleExplanation {
         nextStep:
           "Si el plan llega a su umbral, los jugadores pierden la partida.",
       };
+    case "THREAT_REMOVED":
+      return {
+        title: "Amenaza retirada",
+        description: `Se retiran ${event.amount} de amenaza del plan.`,
+        reason:
+          "Los héroes y sus aliados pueden retirar amenaza usando su poder básico de frustrar (thwart).",
+      };
     case "DAMAGE_DEALT":
       return {
         title: "Daño infligido",

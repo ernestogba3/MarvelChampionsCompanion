@@ -3,6 +3,7 @@ export type GameEvent =
   | { type: "ROUND_STARTED"; round: number }
   | { type: "PHASE_CHANGED"; from: GamePhase; to: GamePhase }
   | { type: "THREAT_ADDED"; schemeId: string; amount: number }
+  | { type: "THREAT_REMOVED"; schemeId: string; amount: number }
   | { type: "DAMAGE_DEALT"; targetId: string; amount: number; source: string }
   | { type: "HEALTH_HEALED"; targetId: string; amount: number; source: string }
   | { type: "VILLAIN_ATTACKED"; playerId: string; amount: number }
