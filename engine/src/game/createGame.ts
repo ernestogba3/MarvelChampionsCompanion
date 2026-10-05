@@ -1,22 +1,20 @@
-import type { GameState } from '../domain/types.js';
+import type { GameState } from '../domain/types.ts'; const RHINO_STANDARD_ENCOUNTER_DECK: string[] = [ '01098', '01099', '01099', '01100', '01101', '01101', '01102', '01103', '01104', '01104', '01105', '01105', '01106', '01106', '01106', '01107', '01108', '01186', '01186', '01187', '01187', '01188', '01189', '01190', ]; export function createSpiderManVsRhinoGame(playerId: string): GameState {
+  const playerState: GameState['players'][number] = {
+    id: playerId,
+    heroName: 'Spider-Man',
+    form: 'ALTER_EGO',
+    health: 10,
+    maxHealth: 10,
+    faceDownEncounterCards: [],
+    stunned: false,
+    upgradesInPlay: [],
+  };
 
-export function createSpiderManVsRhinoGame(playerId: string): GameState {
   return {
     round: 1,
     phase: { name: 'PLAYER_PHASE' },
     firstPlayerId: playerId,
-    players: [
-      {
-        id: playerId,
-        heroName: 'Spider-Man',
-        form: 'ALTER_EGO',
-        health: 10,
-        maxHealth: 10,
-        faceDownEncounterCards: [],
-        stunned: false,
-        upgradesInPlay: [],
-      },
-    ],
+    players: [playerState],
     villain: {
       name: 'Rhino',
       stage: 'I',
@@ -38,7 +36,8 @@ export function createSpiderManVsRhinoGame(playerId: string): GameState {
       },
     ],
     minions: [],
-    encounterDeck: [],
+    encounterDeck: [...RHINO_STANDARD_ENCOUNTER_DECK],
+    // sin barajar a propósito: el orden real se decide fuera del motor, para que los tests sean deterministas
     encounterDiscard: [],
     pendingEncounterDeals: [],
     reservedNemesis: null,
