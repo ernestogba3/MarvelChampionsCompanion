@@ -41,5 +41,6 @@ import type { GameState } from '../domain/types.ts'; const RHINO_STANDARD_ENCOUN
     encounterDiscard: [],
     pendingEncounterDeals: [],
     reservedNemesis: null,
+    eventLog: [],
   };
 }

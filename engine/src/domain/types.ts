@@ -1,3 +1,4 @@
+import type { GameEvent } from "../events/types";
 export type PlayerForm = "HERO" | "ALTER_EGO";
 export interface PlayerState {
   id: string;
@@ -80,4 +81,5 @@ export interface GameState {
   encounterDiscard: string[];
   pendingEncounterDeals: string[];
   reservedNemesis: NemesisSet | null;
+  eventLog: GameEvent[];
 }
