@@ -25,3 +25,16 @@ export function createCharge(id: string): VillainAttachmentState {
     discardAfterAttack: true,
   };
 }
+export function createEnhancedIvoryHorn(id: string): VillainAttachmentState {
+  return {
+    id,
+    cardId: "01100",
+    name: "Cuerno de marfil mejorado",
+    damageAbsorbed: 0,
+    active: true,
+    redirectsDamage: false,
+    damageCapacity: 0,
+    attackBonus: 1,
+    discardAfterAttack: false,
+  };
+}

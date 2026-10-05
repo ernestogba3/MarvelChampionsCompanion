@@ -1,5 +1,21 @@
-import type { MinionState } from "../domain/types.ts";
-
+import type { MinionState } from "../domain/types";
+export function createHydraMercenary(
+  id: string,
+  engagedWith: string | null,
+): MinionState {
+  return {
+    id,
+    cardId: "01101",
+    name: "Mercenario de Hydra",
+    attack: 1,
+    scheme: 0,
+    health: 3,
+    maxHealth: 3,
+    engagedWith,
+    tough: false,
+    guard: true,
+  };
+}
 export function createSandman(
   id: string,
   engagedWith: string | null,
@@ -14,12 +30,13 @@ export function createSandman(
     maxHealth: 4,
     engagedWith,
     tough: true,
-    // entra en juego con un estado de dureza
     guard: false,
   };
 }
-
-export function createShocker(id: string): MinionState {
+export function createShocker(
+  id: string,
+  engagedWith: string | null,
+): MinionState {
   return {
     id,
     cardId: "01103",
@@ -28,7 +45,7 @@ export function createShocker(id: string): MinionState {
     scheme: 1,
     health: 3,
     maxHealth: 3,
-    engagedWith: null,
+    engagedWith,
     tough: false,
     guard: false,
   };

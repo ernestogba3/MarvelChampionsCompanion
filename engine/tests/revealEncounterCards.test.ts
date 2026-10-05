@@ -2,32 +2,63 @@ import { describe, it, expect } from "vitest";
 import { createSpiderManVsRhinoGame } from "../src/game/createGame";
 import { revealPendingCardsForPlayer } from "../src/game/revealEncounterCards";
 describe("revealPendingCardsForPlayer", () => {
-  it("resuelve una carta registrada y la mueve al descarte", () => {
+  it("resuelve un tratado registrado y lo mueve al descarte", () => {
     const base = createSpiderManVsRhinoGame("player-1");
     const state = {
       ...base,
       players: [{ ...base.players[0], faceDownEncounterCards: ["01105"] }],
     };
-    const { state: after, events } = revealPendingCardsForPlayer(
-      state,
-      "player-1",
-    );
+    const { state: after } = revealPendingCardsForPlayer(state, "player-1");
     expect(after.villain.tough).toBe(true);
-    expect(after.players[0].faceDownEncounterCards).toEqual([]);
     expect(after.encounterDiscard).toEqual(["01105"]);
-    expect(events.length).toBeGreaterThan(0);
   });
-  it("no revienta con una carta todavía no registrada, y la descarta igualmente", () => {
+  it("pone en juego un esbirro al revelarse (Mercenario de Hydra)", () => {
+    const base = createSpiderManVsRhinoGame("player-1");
+    const state = {
+      ...base,
+      players: [{ ...base.players[0], faceDownEncounterCards: ["01101"] }],
+    };
+    const { state: after } = revealPendingCardsForPlayer(state, "player-1");
+    expect(after.minions).toHaveLength(1);
+    expect(after.minions[0].name).toBe("Mercenario de Hydra");
+    expect(after.minions[0].guard).toBe(true);
+    expect(after.minions[0].engagedWith).toBe("player-1");
+  });
+  it("acopla un accesorio al villano al revelarse (Piel blindada del Rino)", () => {
     const base = createSpiderManVsRhinoGame("player-1");
     const state = {
       ...base,
       players: [{ ...base.players[0], faceDownEncounterCards: ["01098"] }],
     };
-    const { state: after, unresolvedCardIds } = revealPendingCardsForPlayer(
+    const { state: after } = revealPendingCardsForPlayer(state, "player-1");
+    expect(after.villain.attachments).toHaveLength(1);
+    expect(after.villain.attachments[0].redirectsDamage).toBe(true);
+  });
+  it("pone en juego un side scheme al revelarse (Control de multitudes)", () => {
+    const base = createSpiderManVsRhinoGame("player-1");
+    const state = {
+      ...base,
+      players: [{ ...base.players[0], faceDownEncounterCards: ["01108"] }],
+    };
+    const { state: after, events } = revealPendingCardsForPlayer(
       state,
       "player-1",
     );
-    expect(after.encounterDiscard).toEqual(["01098"]);
-    expect(unresolvedCardIds).toEqual(["01098"]);
+    expect(after.schemes.some((s) => s.name === "Control de multitudes")).toBe(
+      true,
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({ type: "SIDE_SCHEME_ENTERED" }),
+    );
+  });
+  it("el Conmocionador entra en juego Y causa daño a la vez", () => {
+    const base = createSpiderManVsRhinoGame("player-1");
+    const state = {
+      ...base,
+      players: [{ ...base.players[0], faceDownEncounterCards: ["01103"] }],
+    };
+    const { state: after } = revealPendingCardsForPlayer(state, "player-1");
+    expect(after.minions.some((m) => m.name === "Conmocionador")).toBe(true);
+    expect(after.players[0].health).toBe(9);
   });
 });
