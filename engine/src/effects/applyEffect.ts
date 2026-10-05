@@ -8,9 +8,7 @@ export function applyEffect(
   switch (effect.type) {
     case "DEAL_DAMAGE": {
       if (effect.target.kind === "VILLAIN") {
-        const suit = state.villain.attachments.find(
-          (a) => a.name === "Piel blindada del Rino",
-        );
+        const suit = state.villain.attachments.find((a) => a.redirectsDamage);
         if (suit) {
           const newDamage = suit.damageAbsorbed + effect.amount;
           const events: GameEvent[] = [
@@ -23,7 +21,7 @@ export function applyEffect(
           let attachments = state.villain.attachments.map((a) =>
             a.id === suit.id ? { ...a, damageAbsorbed: newDamage } : a,
           );
-          if (newDamage >= 5) {
+          if (newDamage >= suit.damageCapacity) {
             events.push({
               type: "ATTACHMENT_DISCARDED",
               attachmentId: suit.id,

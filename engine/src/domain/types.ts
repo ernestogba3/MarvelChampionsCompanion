@@ -16,6 +16,10 @@ export interface VillainAttachmentState {
   name: string;
   damageAbsorbed: number;
   active: boolean;
+  redirectsDamage: boolean;
+  damageCapacity: number;
+  attackBonus: number;
+  discardAfterAttack: boolean;
 }
 export interface VillainState {
   name: string;
