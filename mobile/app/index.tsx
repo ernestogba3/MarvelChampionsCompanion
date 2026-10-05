@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { Text, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { createSpiderManVsRhinoGame, serializeGameState } from 'engine';
 import { initDatabase, saveGame, loadGame } from '../storage/gameStorage';
@@ -27,58 +27,42 @@ export default function HomeScreen() {
     }
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Phasekeeper</Text>
-            <Text style={styles.subtitle}>Spider-Man vs Rhino</Text>
+        <View className="flex-1 bg-azul-noche items-center justify-center px-8 gap-4">
+            <Text className="font-display text-crema text-6xl tracking-wider">
+                PHASEKEEPER
+            </Text>
+            <Text className="font-sans-semibold text-dorado text-xs tracking-[3px] uppercase mb-2">
+                Tu compañero en cada fase
+            </Text>
+            <Text className="font-sans text-gris-pizarra text-base mb-10">
+                Spider-Man vs Rhino
+            </Text>
 
-            {hasSavedGame === null && <Text>Cargando...</Text>}
+            {hasSavedGame === null && (
+                <Text className="font-sans text-crema">Cargando...</Text>
+            )}
 
             {hasSavedGame === true && (
-                <Pressable style={styles.button} onPress={handleContinue}>
-                    <Text style={styles.buttonText}>Continuar partida</Text>
+                <Pressable
+                    onPress={handleContinue}
+                    className="bg-dorado w-full py-4 rounded-xl items-center"
+                >
+                    <Text className="font-sans-bold text-azul-noche text-base">
+                        Continuar partida
+                    </Text>
                 </Pressable>
             )}
 
             {hasSavedGame !== null && (
-                <Pressable style={styles.buttonSecondary} onPress={handleNewGame}>
-                    <Text style={styles.buttonText}>Nueva partida</Text>
+                <Pressable
+                    onPress={handleNewGame}
+                    className="border border-crema/30 w-full py-4 rounded-xl items-center mt-3"
+                >
+                    <Text className="font-sans-semibold text-crema text-base">
+                        Nueva partida
+                    </Text>
                 </Pressable>
             )}
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 16,
-    },
-    title: {
-        fontSize: 32,
-        fontWeight: 'bold',
-    },
-    subtitle: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 24,
-    },
-    button: {
-        backgroundColor: '#1a73e8',
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 8,
-    },
-    buttonSecondary: {
-        backgroundColor: '#888',
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 8,
-    },
-    buttonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-    },
-});
