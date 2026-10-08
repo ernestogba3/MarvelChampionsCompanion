@@ -10,6 +10,7 @@ import {
     revealPendingCardsForPlayer,
     attackVillain,
     attackMinion,
+    thwartScheme,
     checkGameOutcome,
     describeCurrentStep,
     explainRecentEvents,
@@ -24,14 +25,14 @@ const STEPS = [
     { key: 'VILLAIN_ACTIVATION', label: 'Villano' },
     { key: 'DEAL_ENCOUNTER_CARDS', label: 'Reparto' },
     { key: 'REVEAL_ENCOUNTER_CARDS', label: 'Revelar' },
-    { key: 'PASS_FIRST_PLAYER', label: 'Fin' },
+    { key: 'PASS_FIRST_PLAYER', label: 'Testigo' },
 ] as const;
 
 function currentStepKey(state: GameState): string {
     return state.phase.name === 'PLAYER_PHASE' ? 'PLAYER_PHASE' : state.phase.step;
 }
 
-function HealthBar({ current, max, color }: { current: number; max: number; color: string }) {
+function ProgressBar({ current, max, color }: { current: number; max: number; color: string }) {
     const pct = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
     return (
         <View className="h-2 bg-crema/10 rounded-full overflow-hidden w-full">
@@ -44,6 +45,7 @@ export default function GameScreen() {
     const [state, setState] = useState<GameState | null>(null);
     const [damageInput, setDamageInput] = useState('');
     const [minionDamageInputs, setMinionDamageInputs] = useState<Record<string, string>>({});
+    const [schemeThwartInputs, setSchemeThwartInputs] = useState<Record<string, string>>({});
 
     useEffect(() => {
         async function load() {
@@ -85,6 +87,15 @@ export default function GameScreen() {
         if (!amount || amount <= 0) return;
         const { state: next } = runAndLog(attackMinion, state, minionId, amount);
         setMinionDamageInputs((prev) => ({ ...prev, [minionId]: '' }));
+        await persist(next);
+    }
+
+    async function handleThwartScheme(schemeId: string) {
+        if (!state) return;
+        const amount = parseInt(schemeThwartInputs[schemeId] ?? '', 10);
+        if (!amount || amount <= 0) return;
+        const { state: next } = runAndLog(thwartScheme, state, schemeId, amount);
+        setSchemeThwartInputs((prev) => ({ ...prev, [schemeId]: '' }));
         await persist(next);
     }
 
@@ -182,7 +193,7 @@ export default function GameScreen() {
                         {state.villain.health} / {state.villain.maxHealth}
                     </Text>
                 </View>
-                <HealthBar current={state.villain.health} max={state.villain.maxHealth} color="bg-rojo-acento" />
+                <ProgressBar current={state.villain.health} max={state.villain.maxHealth} color="bg-rojo-acento" />
             </View>
 
             <View className="bg-crema/5 rounded-2xl p-4 gap-2">
@@ -192,13 +203,50 @@ export default function GameScreen() {
                         {player.health} / {player.maxHealth} · {player.form === 'HERO' ? 'Héroe' : 'Alter ego'}
                     </Text>
                 </View>
-                <HealthBar current={player.health} max={player.maxHealth} color="bg-dorado" />
+                <ProgressBar current={player.health} max={player.maxHealth} color="bg-dorado" />
                 <Pressable onPress={toggleForm} className="border border-crema/20 rounded-lg py-2 items-center mt-1">
                     <Text className="font-sans-semibold text-crema text-sm">
                         Cambiar a {player.form === 'HERO' ? 'alter ego' : 'héroe'}
                     </Text>
                 </Pressable>
             </View>
+
+            {state.schemes.length > 0 && (
+                <View className="bg-crema/5 rounded-2xl p-4 gap-3">
+                    <Text className="font-sans-bold text-crema text-base">Planes</Text>
+                    {state.schemes.map((scheme) => (
+                        <View key={scheme.id} className="gap-1">
+                            <View className="flex-row justify-between items-center">
+                                <Text className="font-sans text-crema text-sm">
+                                    {scheme.name}
+                                    {scheme.isMain ? ' · Plan principal' : ' · Plan secundario'}
+                                </Text>
+                                <Text className="font-sans text-gris-pizarra text-xs">
+                                    {scheme.threat}/{scheme.threatToComplete}
+                                </Text>
+                            </View>
+                            <ProgressBar current={scheme.threat} max={scheme.threatToComplete} color="bg-rojo-acento" />
+                            {isPlayerPhase && (
+                                <View className="flex-row gap-2 mt-1">
+                                    <TextInput
+                                        className="border border-crema/20 rounded-lg px-3 py-1.5 text-crema flex-1"
+                                        placeholderTextColor="#6B7280"
+                                        keyboardType="number-pad"
+                                        value={schemeThwartInputs[scheme.id] ?? ''}
+                                        onChangeText={(text) =>
+                                            setSchemeThwartInputs((prev) => ({ ...prev, [scheme.id]: text }))
+                                        }
+                                        placeholder="Esfuerzo"
+                                    />
+                                    <Pressable onPress={() => handleThwartScheme(scheme.id)} className="bg-dorado rounded-lg px-4 justify-center">
+                                        <Text className="font-sans-bold text-azul-noche text-sm">Aplicar</Text>
+                                    </Pressable>
+                                </View>
+                            )}
+                        </View>
+                    ))}
+                </View>
+            )}
 
             {state.minions.length > 0 && (
                 <View className="bg-crema/5 rounded-2xl p-4 gap-3">
@@ -214,7 +262,7 @@ export default function GameScreen() {
                                     {minion.health}/{minion.maxHealth}
                                 </Text>
                             </View>
-                            <HealthBar current={minion.health} max={minion.maxHealth} color="bg-rojo-acento" />
+                            <ProgressBar current={minion.health} max={minion.maxHealth} color="bg-rojo-acento" />
                             {isPlayerPhase && (
                                 <View className="flex-row gap-2 mt-1">
                                     <TextInput

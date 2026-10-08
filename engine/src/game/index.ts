@@ -21,3 +21,5 @@ export {
   checkGameOutcome,
 } from "./playerActions";
 export type { GameOutcome } from "./playerActions";
+export { CARD_CATALOG, getCardDefinition } from "../data/cards";
+export type { CardDefinition, CardType, EncounterSet } from "../data/cards";
