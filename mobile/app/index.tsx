@@ -1,68 +1,152 @@
-import { useEffect, useState } from 'react';
-import { Text, View, Pressable } from 'react-native';
-import { router } from 'expo-router';
-import { createSpiderManVsRhinoGame, serializeGameState } from 'engine';
-import { initDatabase, saveGame, loadGame } from '../storage/gameStorage';
+import { useEffect, useState, useCallback } from 'react';
+import { Text, View, Pressable, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useFocusEffect } from 'expo-router';
+import {
+    loadGame,
+    saveGame,
+    initDatabase,
+} from '../storage/gameStorage';
+import {
+    createSpiderManVsRhinoGame,
+    serializeGameState,
+    deserializeGameState,
+} from 'engine';
+import type { GameState } from 'engine';
 
-export default function HomeScreen() {
-    const [hasSavedGame, setHasSavedGame] = useState<boolean | null>(null);
+export default function IndexScreen() {
+    const router = useRouter();
+    const [savedGame, setSavedGame] = useState<GameState | null>(null);
+    const [ready, setReady] = useState(false);
+
+    async function refresh() {
+        const saved = await loadGame();
+        if (saved) {
+            try {
+                setSavedGame(deserializeGameState(saved));
+            } catch {
+                setSavedGame(null);
+            }
+        } else {
+            setSavedGame(null);
+        }
+    }
 
     useEffect(() => {
-        async function checkSavedGame() {
+        async function init() {
             await initDatabase();
-            const saved = await loadGame();
-            setHasSavedGame(saved !== null);
+            await refresh();
+            setReady(true);
         }
-        checkSavedGame();
+        init();
     }, []);
 
-    async function handleNewGame() {
-        const fresh = createSpiderManVsRhinoGame('player-1');
-        await saveGame(serializeGameState(fresh));
+    useFocusEffect(
+        useCallback(() => {
+            // Solo refrescamos cuando ya hemos pasado el init inicial;
+            // así evitamos que esta llamada corra en paralelo con initDatabase.
+            if (ready) {
+                refresh();
+            }
+        }, [ready]),
+    );
+
+    async function startNew() {
+        const state = createSpiderManVsRhinoGame();
+        await saveGame(serializeGameState(state));
         router.push('/game');
+    }
+
+    function handleNewGame() {
+        if (savedGame) {
+            Alert.alert(
+                'Nueva partida',
+                'Esto sobrescribirá la partida en curso. ¿Continuar?',
+                [
+                    { text: 'Cancelar', style: 'cancel' },
+                    {
+                        text: 'Nueva partida',
+                        style: 'destructive',
+                        onPress: startNew,
+                    },
+                ],
+            );
+            return;
+        }
+        startNew();
     }
 
     function handleContinue() {
         router.push('/game');
     }
 
-    return (
-        <View className="flex-1 bg-azul-noche items-center justify-center px-8 gap-4">
-            <Text className="font-display text-crema text-6xl tracking-wider">
-                PHASEKEEPER
-            </Text>
-            <Text className="font-sans-semibold text-dorado text-xs tracking-[3px] uppercase mb-2">
-                Tu compañero en cada fase
-            </Text>
-            <Text className="font-sans text-gris-pizarra text-base mb-10">
-                Spider-Man vs Rhino
-            </Text>
-
-            {hasSavedGame === null && (
+    if (!ready) {
+        return (
+            <View className="flex-1 bg-azul-noche items-center justify-center">
                 <Text className="font-sans text-crema">Cargando...</Text>
-            )}
+            </View>
+        );
+    }
 
-            {hasSavedGame === true && (
-                <Pressable
-                    onPress={handleContinue}
-                    className="bg-dorado w-full py-4 rounded-xl items-center"
-                >
-                    <Text className="font-sans-bold text-azul-noche text-base">
-                        Continuar partida
+    return (
+        <SafeAreaView className="flex-1 bg-azul-noche" edges={['top', 'bottom']}>
+            <View className="flex-1 px-6 justify-between py-12">
+                <View className="items-center mt-10">
+                    <Text className="font-sans-semibold text-dorado text-xs uppercase tracking-widest">
+                        Compañero de juego
                     </Text>
-                </Pressable>
-            )}
+                    <Text className="font-display text-crema text-6xl mt-4">
+                        PHASEKEEPER
+                    </Text>
+                    <Text className="font-sans text-gris-pizarra text-sm text-center mt-3 px-4">
+                        Árbitro y guía para Marvel Champions: The Card Game
+                    </Text>
+                </View>
 
-            {hasSavedGame !== null && (
-                <Pressable
-                    onPress={handleNewGame}
-                    className="border border-crema/30 w-full py-4 rounded-xl items-center mt-3"
-                >
-                    <Text className="font-sans-semibold text-crema text-base">
-                        Nueva partida
+                <View className="gap-3">
+                    {savedGame && (
+                        <View className="bg-crema/5 rounded-2xl p-4 gap-2">
+                            <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
+                                Partida en curso
+                            </Text>
+                            <Text className="font-sans-bold text-crema text-base">
+                                {savedGame.players[0].heroName} vs {savedGame.villain.name}
+                            </Text>
+                            <Text className="font-sans text-gris-pizarra text-xs">
+                                Ronda {savedGame.round} · Rino {savedGame.villain.stage} ·{' '}
+                                {savedGame.villain.health}/{savedGame.villain.maxHealth} VIDA
+                            </Text>
+                            <Pressable
+                                onPress={handleContinue}
+                                className="bg-dorado rounded-xl py-3 items-center mt-2"
+                            >
+                                <Text className="font-sans-bold text-azul-noche text-base">
+                                    Continuar partida
+                                </Text>
+                            </Pressable>
+                        </View>
+                    )}
+
+                    <Pressable
+                        onPress={handleNewGame}
+                        className={`rounded-xl py-4 items-center ${savedGame ? 'border border-crema/30' : 'bg-dorado'
+                            }`}
+                    >
+                        <Text
+                            className={`font-sans-bold text-base ${savedGame ? 'text-crema' : 'text-azul-noche'
+                                }`}
+                        >
+                            Nueva partida
+                        </Text>
+                    </Pressable>
+
+                    <Text className="font-sans text-gris-pizarra text-xs text-center mt-2">
+                        Spider-Man vs. Rino · Dificultad estándar
                     </Text>
-                </Pressable>
-            )}
-        </View>
+                </View>
+
+                <View />
+            </View>
+        </SafeAreaView>
     );
 }

@@ -15,6 +15,7 @@ import {
     describeCurrentStep,
     explainRecentEvents,
     runAndLog,
+    getCardDefinition,
 } from 'engine';
 import type { GameState } from 'engine';
 import { loadGame, saveGame } from '../../storage/gameStorage';
@@ -27,6 +28,13 @@ const STEPS = [
     { key: 'REVEAL_ENCOUNTER_CARDS', label: 'Revelar' },
     { key: 'PASS_FIRST_PLAYER', label: 'Testigo' },
 ] as const;
+
+const TYPE_LABELS: Record<string, string> = {
+    MINION: 'Esbirro',
+    TREACHERY: 'Tratado',
+    ATTACHMENT: 'Accesorio',
+    SIDE_SCHEME: 'Plan secundario',
+};
 
 function currentStepKey(state: GameState): string {
     return state.phase.name === 'PLAYER_PHASE' ? 'PLAYER_PHASE' : state.phase.step;
@@ -46,6 +54,7 @@ export default function GameScreen() {
     const [damageInput, setDamageInput] = useState('');
     const [minionDamageInputs, setMinionDamageInputs] = useState<Record<string, string>>({});
     const [schemeThwartInputs, setSchemeThwartInputs] = useState<Record<string, string>>({});
+    const [encounterPicks, setEncounterPicks] = useState<string[]>([]);
 
     useEffect(() => {
         async function load() {
@@ -56,6 +65,17 @@ export default function GameScreen() {
         }
         load();
     }, []);
+
+    // Resetear picks cuando el paso cambia (fuera de REVEAL)
+    useEffect(() => {
+        if (!state) return;
+        const isReveal =
+            state.phase.name === 'VILLAIN_PHASE' &&
+            state.phase.step === 'REVEAL_ENCOUNTER_CARDS';
+        if (!isReveal && encounterPicks.length > 0) {
+            setEncounterPicks([]);
+        }
+    }, [state?.phase, state, encounterPicks.length]);
 
     async function persist(next: GameState) {
         await saveGame(serializeGameState(next));
@@ -111,7 +131,17 @@ export default function GameScreen() {
             } else if (state.phase.step === 'DEAL_ENCOUNTER_CARDS') {
                 next = runAndLog(dealPendingEncounterCards, state).state;
             } else if (state.phase.step === 'REVEAL_ENCOUNTER_CARDS') {
-                next = runAndLog(revealPendingCardsForPlayer, state, state.players[0].id).state;
+                const faceDownCount = state.players[0].faceDownEncounterCards.length;
+                if (faceDownCount > 0 && encounterPicks.length !== faceDownCount) {
+                    return; // Falta elegir cartas
+                }
+                next = runAndLog(
+                    revealPendingCardsForPlayer,
+                    state,
+                    state.players[0].id,
+                    encounterPicks.length > 0 ? encounterPicks : undefined,
+                ).state;
+                setEncounterPicks([]);
             }
         }
 
@@ -146,7 +176,26 @@ export default function GameScreen() {
     const step = describeCurrentStep(state);
     const recent = explainRecentEvents(state, 3);
     const isPlayerPhase = state.phase.name === 'PLAYER_PHASE';
+    const isRevealStep =
+        state.phase.name === 'VILLAIN_PHASE' &&
+        state.phase.step === 'REVEAL_ENCOUNTER_CARDS';
     const activeKey = currentStepKey(state);
+
+    const faceDownCount = player.faceDownEncounterCards.length;
+    const encounterPool = isRevealStep
+        ? [...state.encounterDeck, ...player.faceDownEncounterCards]
+        : [];
+    // Quitar del pool las cartas ya elegidas, una ocurrencia por elección
+    const availablePool = (() => {
+        const remaining = [...encounterPool];
+        for (const pick of encounterPicks) {
+            const idx = remaining.indexOf(pick);
+            if (idx >= 0) remaining.splice(idx, 1);
+        }
+        return remaining;
+    })();
+
+    const canConfirm = !isRevealStep || faceDownCount === 0 || encounterPicks.length === faceDownCount;
 
     return (
         <ScrollView className="flex-1 bg-azul-noche" contentContainerStyle={{ padding: 20, gap: 16 }}>
@@ -304,6 +353,59 @@ export default function GameScreen() {
                 </View>
             )}
 
+            {isRevealStep && faceDownCount > 0 && (
+                <View className="bg-crema/5 rounded-2xl p-4 gap-3">
+                    <Text className="font-sans-bold text-crema text-base">
+                        ¿Qué carta has robado? ({encounterPicks.length}/{faceDownCount})
+                    </Text>
+                    <Text className="font-sans text-gris-pizarra text-xs">
+                        Mira la carta que tienes físicamente y selecciónala en la lista.
+                    </Text>
+
+                    {encounterPicks.length < faceDownCount && (
+                        <View style={{ maxHeight: 240 }}>
+                            <ScrollView contentContainerStyle={{ gap: 6 }} nestedScrollEnabled>
+                                {availablePool.map((cardId, idx) => {
+                                    const def = getCardDefinition(cardId);
+                                    if (!def) return null;
+                                    return (
+                                        <Pressable
+                                            key={`${cardId}-${idx}`}
+                                            onPress={() => setEncounterPicks([...encounterPicks, cardId])}
+                                            className="border border-crema/20 rounded-lg px-3 py-2"
+                                        >
+                                            <Text className="font-sans-semibold text-crema text-sm">{def.nameEs}</Text>
+                                            <Text className="font-sans text-gris-pizarra text-xs">
+                                                {TYPE_LABELS[def.type] ?? def.type}
+                                            </Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </ScrollView>
+                        </View>
+                    )}
+
+                    {encounterPicks.length > 0 && (
+                        <View className="gap-1">
+                            <Text className="font-sans text-gris-pizarra text-xs">
+                                Elegidas:{' '}
+                                {encounterPicks
+                                    .map((id) => getCardDefinition(id)?.nameEs ?? id)
+                                    .join(', ')}
+                            </Text>
+                            <Pressable
+                                onPress={() => setEncounterPicks(encounterPicks.slice(0, -1))}
+                                className="border border-crema/20 rounded-lg py-2 items-center"
+                            >
+                                <Text className="font-sans-semibold text-crema text-xs">
+                                    Deshacer última
+                                </Text>
+                            </Pressable>
+                        </View>
+                    )}
+                </View>
+            )}
+
             <View className="bg-dorado/10 border border-dorado/30 rounded-2xl p-4 gap-1">
                 <Text className="font-sans-bold text-dorado text-sm">{step.title}</Text>
                 <Text className="font-sans text-crema text-sm">{step.description}</Text>
@@ -312,8 +414,15 @@ export default function GameScreen() {
                 ) : null}
             </View>
 
-            <Pressable onPress={handleConfirm} className="bg-dorado rounded-xl py-4 items-center">
-                <Text className="font-sans-bold text-azul-noche text-base">Confirmar y continuar</Text>
+            <Pressable
+                onPress={handleConfirm}
+                disabled={!canConfirm}
+                className={`rounded-xl py-4 items-center ${canConfirm ? 'bg-dorado' : 'bg-dorado/40'
+                    }`}
+            >
+                <Text className="font-sans-bold text-azul-noche text-base">
+                    {canConfirm ? 'Confirmar y continuar' : `Elige ${faceDownCount - encounterPicks.length} carta(s)`}
+                </Text>
             </Pressable>
 
             {recent.length > 0 && (

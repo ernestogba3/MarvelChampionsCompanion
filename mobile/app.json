@@ -3,6 +3,7 @@
     "name": "mobile",
     "slug": "mobile",
     "version": "1.0.0",
+    "scheme": "phasekeeper",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -21,11 +22,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-sqlite",
-      "expo-router",
-      "expo-status-bar",
-      "expo-font"
-    ]
+    "plugins": ["expo-sqlite", "expo-router", "expo-status-bar", "expo-font"]
   }
 }
