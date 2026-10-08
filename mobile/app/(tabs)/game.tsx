@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Text, View, Pressable, ScrollView, TextInput } from 'react-native';
+import {
+    Text,
+    View,
+    Pressable,
+    ScrollView,
+    TextInput,
+    Image,
+    Modal,
+    Dimensions,
+} from 'react-native';
 import {
     deserializeGameState,
     serializeGameState,
@@ -18,6 +27,8 @@ import {
     getCardDefinition,
 } from 'engine';
 import type { GameState } from 'engine';
+
+type SchemeState = GameState['schemes'][number];
 import { loadGame, saveGame } from '../../storage/gameStorage';
 
 const STEPS = [
@@ -36,11 +47,46 @@ const TYPE_LABELS: Record<string, string> = {
     SIDE_SCHEME: 'Plan secundario',
 };
 
+const VILLAIN_CARD_ID_BY_STAGE: Record<string, string> = {
+    I: '01094',
+    II: '01095',
+    III: '01096',
+};
+
+const MAIN_SCHEME_CARD_ID_BY_ID: Record<string, string> = {
+    'main-break-in': '01097',
+};
+
+const SIDE_SCHEME_CARD_ID_BY_NAME: Record<string, string> = {
+    'Control de multitudes': '01108',
+};
+
+function getSchemeCardId(scheme: SchemeState): string | null {
+    if (scheme.isMain) {
+        return MAIN_SCHEME_CARD_ID_BY_ID[scheme.id] ?? null;
+    }
+    return SIDE_SCHEME_CARD_ID_BY_NAME[scheme.name] ?? null;
+}
+
+const CARD_ASPECT_RATIO = 0.714;
+
+function cardImageUrl(id: string) {
+    return `https://es.marvelcdb.com/bundles/cards/${id}.png`;
+}
+
 function currentStepKey(state: GameState): string {
     return state.phase.name === 'PLAYER_PHASE' ? 'PLAYER_PHASE' : state.phase.step;
 }
 
-function ProgressBar({ current, max, color }: { current: number; max: number; color: string }) {
+function ProgressBar({
+    current,
+    max,
+    color,
+}: {
+    current: number;
+    max: number;
+    color: string;
+}) {
     const pct = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
     return (
         <View className="h-2 bg-crema/10 rounded-full overflow-hidden w-full">
@@ -49,12 +95,45 @@ function ProgressBar({ current, max, color }: { current: number; max: number; co
     );
 }
 
+function CardThumb({
+    cardId,
+    size = 'md',
+    onPress,
+}: {
+    cardId: string;
+    size?: 'sm' | 'md';
+    onPress?: () => void;
+}) {
+    const dims = size === 'sm' ? { w: 44, h: 62 } : { w: 50, h: 70 };
+    const img = (
+        <Image
+            source={{ uri: cardImageUrl(cardId) }}
+            style={{
+                width: dims.w,
+                height: dims.h,
+                borderRadius: 4,
+                backgroundColor: '#1a1f3a',
+            }}
+            resizeMode="contain"
+        />
+    );
+    if (!onPress) return img;
+    return <Pressable onPress={onPress}>{img}</Pressable>;
+}
+
 export default function GameScreen() {
     const [state, setState] = useState<GameState | null>(null);
     const [damageInput, setDamageInput] = useState('');
     const [minionDamageInputs, setMinionDamageInputs] = useState<Record<string, string>>({});
     const [schemeThwartInputs, setSchemeThwartInputs] = useState<Record<string, string>>({});
     const [encounterPicks, setEncounterPicks] = useState<string[]>([]);
+    const [modalCardId, setModalCardId] = useState<string | null>(null);
+
+    const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+    const maxWidthFromScreen = screenWidth - 48;
+    const maxWidthFromHeight = screenHeight * 0.72 * CARD_ASPECT_RATIO;
+    const modalImageWidth = Math.min(maxWidthFromScreen, maxWidthFromHeight, 420);
+    const modalImageHeight = modalImageWidth / CARD_ASPECT_RATIO;
 
     useEffect(() => {
         async function load() {
@@ -66,7 +145,6 @@ export default function GameScreen() {
         load();
     }, []);
 
-    // Resetear picks cuando el paso cambia (fuera de REVEAL)
     useEffect(() => {
         if (!state) return;
         const isReveal =
@@ -133,7 +211,7 @@ export default function GameScreen() {
             } else if (state.phase.step === 'REVEAL_ENCOUNTER_CARDS') {
                 const faceDownCount = state.players[0].faceDownEncounterCards.length;
                 if (faceDownCount > 0 && encounterPicks.length !== faceDownCount) {
-                    return; // Falta elegir cartas
+                    return;
                 }
                 next = runAndLog(
                     revealPendingCardsForPlayer,
@@ -181,11 +259,15 @@ export default function GameScreen() {
         state.phase.step === 'REVEAL_ENCOUNTER_CARDS';
     const activeKey = currentStepKey(state);
 
+    const displayName = player.form === 'HERO' ? player.heroName : player.alterEgoName;
+    const otherName = player.form === 'HERO' ? player.alterEgoName : player.heroName;
+
+    const villainCardId = VILLAIN_CARD_ID_BY_STAGE[state.villain.stage] ?? null;
+
     const faceDownCount = player.faceDownEncounterCards.length;
     const encounterPool = isRevealStep
         ? [...state.encounterDeck, ...player.faceDownEncounterCards]
         : [];
-    // Quitar del pool las cartas ya elegidas, una ocurrencia por elección
     const availablePool = (() => {
         const remaining = [...encounterPool];
         for (const pick of encounterPicks) {
@@ -195,248 +277,336 @@ export default function GameScreen() {
         return remaining;
     })();
 
-    const canConfirm = !isRevealStep || faceDownCount === 0 || encounterPicks.length === faceDownCount;
+    const canConfirm =
+        !isRevealStep || faceDownCount === 0 || encounterPicks.length === faceDownCount;
 
     return (
-        <ScrollView className="flex-1 bg-azul-noche" contentContainerStyle={{ padding: 20, gap: 16 }}>
-            <View>
-                <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
-                    Ronda {state.round}
-                </Text>
-                <Text className="font-display text-crema text-3xl">{step.title}</Text>
-            </View>
+        <>
+            <ScrollView className="flex-1 bg-azul-noche" contentContainerStyle={{ padding: 20, gap: 16 }}>
+                <View>
+                    <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
+                        Ronda {state.round}
+                    </Text>
+                    <Text className="font-display text-crema text-3xl">{step.title}</Text>
+                </View>
 
-            <View className="flex-row justify-between">
-                {STEPS.map((s, i) => {
-                    const isActive = s.key === activeKey;
-                    return (
-                        <View key={s.key} className="items-center flex-1">
-                            <View
-                                className={`w-7 h-7 rounded-full items-center justify-center mb-1 ${isActive ? 'bg-dorado' : 'bg-crema/10'
-                                    }`}
-                            >
-                                <Text
-                                    className={`font-sans-bold text-xs ${isActive ? 'text-azul-noche' : 'text-gris-pizarra'
+                <View className="flex-row justify-between">
+                    {STEPS.map((s, i) => {
+                        const isActive = s.key === activeKey;
+                        return (
+                            <View key={s.key} className="items-center flex-1">
+                                <View
+                                    className={`w-7 h-7 rounded-full items-center justify-center mb-1 ${isActive ? 'bg-dorado' : 'bg-crema/10'
                                         }`}
                                 >
-                                    {i + 1}
+                                    <Text
+                                        className={`font-sans-bold text-xs ${isActive ? 'text-azul-noche' : 'text-gris-pizarra'
+                                            }`}
+                                    >
+                                        {i + 1}
+                                    </Text>
+                                </View>
+                                <Text
+                                    className={`font-sans text-[10px] text-center ${isActive ? 'text-dorado' : 'text-gris-pizarra'
+                                        }`}
+                                >
+                                    {s.label}
                                 </Text>
                             </View>
-                            <Text
-                                className={`font-sans text-[10px] text-center ${isActive ? 'text-dorado' : 'text-gris-pizarra'
-                                    }`}
-                            >
-                                {s.label}
+                        );
+                    })}
+                </View>
+
+                {/* VILLANO */}
+                <View className="bg-crema/5 rounded-2xl p-4 flex-row gap-3 items-center">
+                    {villainCardId && (
+                        <CardThumb cardId={villainCardId} onPress={() => setModalCardId(villainCardId)} />
+                    )}
+                    <View className="flex-1 gap-2">
+                        <View className="flex-row justify-between items-center">
+                            <Text className="font-sans-bold text-crema text-base">
+                                Rino ({state.villain.stage})
+                            </Text>
+                            <Text className="font-sans text-gris-pizarra text-xs">
+                                {state.villain.health} / {state.villain.maxHealth}
                             </Text>
                         </View>
-                    );
-                })}
-            </View>
-
-            <View className="bg-crema/5 rounded-2xl p-4 gap-2">
-                <View className="flex-row justify-between items-center">
-                    <Text className="font-sans-bold text-crema text-base">
-                        Rino ({state.villain.stage})
-                    </Text>
-                    <Text className="font-sans text-gris-pizarra text-xs">
-                        {state.villain.health} / {state.villain.maxHealth}
-                    </Text>
-                </View>
-                <ProgressBar current={state.villain.health} max={state.villain.maxHealth} color="bg-rojo-acento" />
-            </View>
-
-            <View className="bg-crema/5 rounded-2xl p-4 gap-2">
-                <View className="flex-row justify-between items-center">
-                    <Text className="font-sans-bold text-crema text-base">{player.heroName}</Text>
-                    <Text className="font-sans text-gris-pizarra text-xs">
-                        {player.health} / {player.maxHealth} · {player.form === 'HERO' ? 'Héroe' : 'Alter ego'}
-                    </Text>
-                </View>
-                <ProgressBar current={player.health} max={player.maxHealth} color="bg-dorado" />
-                <Pressable onPress={toggleForm} className="border border-crema/20 rounded-lg py-2 items-center mt-1">
-                    <Text className="font-sans-semibold text-crema text-sm">
-                        Cambiar a {player.form === 'HERO' ? 'alter ego' : 'héroe'}
-                    </Text>
-                </Pressable>
-            </View>
-
-            {state.schemes.length > 0 && (
-                <View className="bg-crema/5 rounded-2xl p-4 gap-3">
-                    <Text className="font-sans-bold text-crema text-base">Planes</Text>
-                    {state.schemes.map((scheme) => (
-                        <View key={scheme.id} className="gap-1">
-                            <View className="flex-row justify-between items-center">
-                                <Text className="font-sans text-crema text-sm">
-                                    {scheme.name}
-                                    {scheme.isMain ? ' · Plan principal' : ' · Plan secundario'}
-                                </Text>
-                                <Text className="font-sans text-gris-pizarra text-xs">
-                                    {scheme.threat}/{scheme.threatToComplete}
-                                </Text>
-                            </View>
-                            <ProgressBar current={scheme.threat} max={scheme.threatToComplete} color="bg-rojo-acento" />
-                            {isPlayerPhase && (
-                                <View className="flex-row gap-2 mt-1">
-                                    <TextInput
-                                        className="border border-crema/20 rounded-lg px-3 py-1.5 text-crema flex-1"
-                                        placeholderTextColor="#6B7280"
-                                        keyboardType="number-pad"
-                                        value={schemeThwartInputs[scheme.id] ?? ''}
-                                        onChangeText={(text) =>
-                                            setSchemeThwartInputs((prev) => ({ ...prev, [scheme.id]: text }))
-                                        }
-                                        placeholder="Esfuerzo"
-                                    />
-                                    <Pressable onPress={() => handleThwartScheme(scheme.id)} className="bg-dorado rounded-lg px-4 justify-center">
-                                        <Text className="font-sans-bold text-azul-noche text-sm">Aplicar</Text>
-                                    </Pressable>
-                                </View>
-                            )}
-                        </View>
-                    ))}
-                </View>
-            )}
-
-            {state.minions.length > 0 && (
-                <View className="bg-crema/5 rounded-2xl p-4 gap-3">
-                    <Text className="font-sans-bold text-crema text-base">Esbirros</Text>
-                    {state.minions.map((minion) => (
-                        <View key={minion.id} className="gap-1">
-                            <View className="flex-row justify-between items-center">
-                                <Text className="font-sans text-crema text-sm">
-                                    {minion.name}
-                                    {minion.guard ? ' · Guardia' : ''}
-                                </Text>
-                                <Text className="font-sans text-gris-pizarra text-xs">
-                                    {minion.health}/{minion.maxHealth}
-                                </Text>
-                            </View>
-                            <ProgressBar current={minion.health} max={minion.maxHealth} color="bg-rojo-acento" />
-                            {isPlayerPhase && (
-                                <View className="flex-row gap-2 mt-1">
-                                    <TextInput
-                                        className="border border-crema/20 rounded-lg px-3 py-1.5 text-crema flex-1"
-                                        placeholderTextColor="#6B7280"
-                                        keyboardType="number-pad"
-                                        value={minionDamageInputs[minion.id] ?? ''}
-                                        onChangeText={(text) =>
-                                            setMinionDamageInputs((prev) => ({ ...prev, [minion.id]: text }))
-                                        }
-                                        placeholder="Daño"
-                                    />
-                                    <Pressable onPress={() => handleAttackMinion(minion.id)} className="bg-dorado rounded-lg px-4 justify-center">
-                                        <Text className="font-sans-bold text-azul-noche text-sm">Aplicar</Text>
-                                    </Pressable>
-                                </View>
-                            )}
-                        </View>
-                    ))}
-                </View>
-            )}
-
-            {isPlayerPhase && (
-                <View className="bg-crema/5 rounded-2xl p-4 gap-2">
-                    <Text className="font-sans-bold text-crema text-base">Atacar a Rino</Text>
-                    <View className="flex-row gap-2">
-                        <TextInput
-                            className="border border-crema/20 rounded-lg px-3 py-2 text-crema flex-1"
-                            placeholderTextColor="#6B7280"
-                            keyboardType="number-pad"
-                            value={damageInput}
-                            onChangeText={setDamageInput}
-                            placeholder="Daño"
+                        <ProgressBar
+                            current={state.villain.health}
+                            max={state.villain.maxHealth}
+                            color="bg-rojo-acento"
                         />
-                        <Pressable onPress={handleAttack} className="bg-dorado rounded-lg px-5 justify-center">
-                            <Text className="font-sans-bold text-azul-noche text-sm">Aplicar</Text>
-                        </Pressable>
                     </View>
                 </View>
-            )}
 
-            {isRevealStep && faceDownCount > 0 && (
-                <View className="bg-crema/5 rounded-2xl p-4 gap-3">
-                    <Text className="font-sans-bold text-crema text-base">
-                        ¿Qué carta has robado? ({encounterPicks.length}/{faceDownCount})
-                    </Text>
-                    <Text className="font-sans text-gris-pizarra text-xs">
-                        Mira la carta que tienes físicamente y selecciónala en la lista.
-                    </Text>
+                {/* HÉROE */}
+                <View className="bg-crema/5 rounded-2xl p-4 gap-2">
+                    <View className="flex-row justify-between items-center">
+                        <Text className="font-sans-bold text-crema text-base">{displayName}</Text>
+                        <Text className="font-sans text-gris-pizarra text-xs">
+                            {player.health} / {player.maxHealth} ·{' '}
+                            {player.form === 'HERO' ? 'Héroe' : 'Alter ego'}
+                        </Text>
+                    </View>
+                    <ProgressBar current={player.health} max={player.maxHealth} color="bg-dorado" />
+                    <Pressable
+                        onPress={toggleForm}
+                        className="border border-crema/20 rounded-lg py-2 items-center mt-1"
+                    >
+                        <Text className="font-sans-semibold text-crema text-sm">Cambiar a {otherName}</Text>
+                    </Pressable>
+                </View>
 
-                    {encounterPicks.length < faceDownCount && (
-                        <View style={{ maxHeight: 240 }}>
-                            <ScrollView contentContainerStyle={{ gap: 6 }} nestedScrollEnabled>
-                                {availablePool.map((cardId, idx) => {
-                                    const def = getCardDefinition(cardId);
-                                    if (!def) return null;
-                                    return (
-                                        <Pressable
-                                            key={`${cardId}-${idx}`}
-                                            onPress={() => setEncounterPicks([...encounterPicks, cardId])}
-                                            className="border border-crema/20 rounded-lg px-3 py-2"
-                                        >
-                                            <Text className="font-sans-semibold text-crema text-sm">{def.nameEs}</Text>
-                                            <Text className="font-sans text-gris-pizarra text-xs">
-                                                {TYPE_LABELS[def.type] ?? def.type}
+                {/* PLANES */}
+                {state.schemes.length > 0 && (
+                    <View className="bg-crema/5 rounded-2xl p-4 gap-3">
+                        <Text className="font-sans-bold text-crema text-base">Planes</Text>
+                        {state.schemes.map((scheme) => {
+                            const schemeCardId = getSchemeCardId(scheme);
+                            return (
+                                <View key={scheme.id} className="flex-row gap-3">
+                                    {schemeCardId && (
+                                        <CardThumb
+                                            cardId={schemeCardId}
+                                            onPress={() => setModalCardId(schemeCardId)}
+                                        />
+                                    )}
+                                    <View className="flex-1 gap-1">
+                                        <View className="flex-row justify-between items-center">
+                                            <Text className="font-sans text-crema text-sm flex-1" numberOfLines={1}>
+                                                {scheme.name}
+                                                {scheme.isMain ? ' · Principal' : ' · Secundario'}
                                             </Text>
-                                        </Pressable>
-                                    );
-                                })}
-                            </ScrollView>
-                        </View>
-                    )}
+                                            <Text className="font-sans text-gris-pizarra text-xs">
+                                                {scheme.threat}/{scheme.threatToComplete}
+                                            </Text>
+                                        </View>
+                                        <ProgressBar
+                                            current={scheme.threat}
+                                            max={scheme.threatToComplete}
+                                            color="bg-rojo-acento"
+                                        />
+                                        {isPlayerPhase && (
+                                            <View className="flex-row gap-2 mt-1">
+                                                <TextInput
+                                                    className="border border-crema/20 rounded-lg px-3 py-1.5 text-crema flex-1"
+                                                    placeholderTextColor="#6B7280"
+                                                    keyboardType="number-pad"
+                                                    value={schemeThwartInputs[scheme.id] ?? ''}
+                                                    onChangeText={(text) =>
+                                                        setSchemeThwartInputs((prev) => ({ ...prev, [scheme.id]: text }))
+                                                    }
+                                                    placeholder="Esfuerzo"
+                                                />
+                                                <Pressable
+                                                    onPress={() => handleThwartScheme(scheme.id)}
+                                                    className="bg-dorado rounded-lg px-4 justify-center"
+                                                >
+                                                    <Text className="font-sans-bold text-azul-noche text-sm">Aplicar</Text>
+                                                </Pressable>
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </View>
+                )}
 
-                    {encounterPicks.length > 0 && (
-                        <View className="gap-1">
-                            <Text className="font-sans text-gris-pizarra text-xs">
-                                Elegidas:{' '}
-                                {encounterPicks
-                                    .map((id) => getCardDefinition(id)?.nameEs ?? id)
-                                    .join(', ')}
-                            </Text>
+                {/* ESBIRROS */}
+                {state.minions.length > 0 && (
+                    <View className="bg-crema/5 rounded-2xl p-4 gap-3">
+                        <Text className="font-sans-bold text-crema text-base">Esbirros</Text>
+                        {state.minions.map((minion) => (
+                            <View key={minion.id} className="flex-row gap-3">
+                                <CardThumb cardId={minion.cardId} onPress={() => setModalCardId(minion.cardId)} />
+                                <View className="flex-1 gap-1">
+                                    <View className="flex-row justify-between items-center">
+                                        <Text className="font-sans text-crema text-sm flex-1" numberOfLines={1}>
+                                            {minion.name}
+                                            {minion.guard ? ' · Guardia' : ''}
+                                        </Text>
+                                        <Text className="font-sans text-gris-pizarra text-xs">
+                                            {minion.health}/{minion.maxHealth}
+                                        </Text>
+                                    </View>
+                                    <ProgressBar
+                                        current={minion.health}
+                                        max={minion.maxHealth}
+                                        color="bg-rojo-acento"
+                                    />
+                                    {isPlayerPhase && (
+                                        <View className="flex-row gap-2 mt-1">
+                                            <TextInput
+                                                className="border border-crema/20 rounded-lg px-3 py-1.5 text-crema flex-1"
+                                                placeholderTextColor="#6B7280"
+                                                keyboardType="number-pad"
+                                                value={minionDamageInputs[minion.id] ?? ''}
+                                                onChangeText={(text) =>
+                                                    setMinionDamageInputs((prev) => ({ ...prev, [minion.id]: text }))
+                                                }
+                                                placeholder="Daño"
+                                            />
+                                            <Pressable
+                                                onPress={() => handleAttackMinion(minion.id)}
+                                                className="bg-dorado rounded-lg px-4 justify-center"
+                                            >
+                                                <Text className="font-sans-bold text-azul-noche text-sm">Aplicar</Text>
+                                            </Pressable>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                )}
+
+                {isPlayerPhase && (
+                    <View className="bg-crema/5 rounded-2xl p-4 gap-2">
+                        <Text className="font-sans-bold text-crema text-base">Atacar a Rino</Text>
+                        <View className="flex-row gap-2">
+                            <TextInput
+                                className="border border-crema/20 rounded-lg px-3 py-2 text-crema flex-1"
+                                placeholderTextColor="#6B7280"
+                                keyboardType="number-pad"
+                                value={damageInput}
+                                onChangeText={setDamageInput}
+                                placeholder="Daño"
+                            />
                             <Pressable
-                                onPress={() => setEncounterPicks(encounterPicks.slice(0, -1))}
-                                className="border border-crema/20 rounded-lg py-2 items-center"
+                                onPress={handleAttack}
+                                className="bg-dorado rounded-lg px-5 justify-center"
                             >
-                                <Text className="font-sans-semibold text-crema text-xs">
-                                    Deshacer última
-                                </Text>
+                                <Text className="font-sans-bold text-azul-noche text-sm">Aplicar</Text>
                             </Pressable>
                         </View>
-                    )}
-                </View>
-            )}
+                    </View>
+                )}
 
-            <View className="bg-dorado/10 border border-dorado/30 rounded-2xl p-4 gap-1">
-                <Text className="font-sans-bold text-dorado text-sm">{step.title}</Text>
-                <Text className="font-sans text-crema text-sm">{step.description}</Text>
-                {step.nextStep ? (
-                    <Text className="font-sans text-gris-pizarra text-xs italic mt-1">{step.nextStep}</Text>
-                ) : null}
-            </View>
-
-            <Pressable
-                onPress={handleConfirm}
-                disabled={!canConfirm}
-                className={`rounded-xl py-4 items-center ${canConfirm ? 'bg-dorado' : 'bg-dorado/40'
-                    }`}
-            >
-                <Text className="font-sans-bold text-azul-noche text-base">
-                    {canConfirm ? 'Confirmar y continuar' : `Elige ${faceDownCount - encounterPicks.length} carta(s)`}
-                </Text>
-            </Pressable>
-
-            {recent.length > 0 && (
-                <View className="gap-1 pb-6">
-                    <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
-                        Lo que acaba de pasar
-                    </Text>
-                    {recent.map((explanation, index) => (
-                        <Text key={index} className="font-sans text-crema/80 text-xs">
-                            {explanation.title}: {explanation.description}
+                {/* PICKER DE CARTA DE ENCUENTRO */}
+                {isRevealStep && faceDownCount > 0 && (
+                    <View className="bg-crema/5 rounded-2xl p-4 gap-3">
+                        <Text className="font-sans-bold text-crema text-base">
+                            ¿Qué carta has robado? ({encounterPicks.length}/{faceDownCount})
                         </Text>
-                    ))}
+                        <Text className="font-sans text-gris-pizarra text-xs">
+                            Mira la carta que tienes físicamente y selecciónala en la lista.
+                        </Text>
+
+                        {encounterPicks.length < faceDownCount && (
+                            <View style={{ maxHeight: 320 }}>
+                                <ScrollView contentContainerStyle={{ gap: 6 }} nestedScrollEnabled>
+                                    {availablePool.map((cardId, idx) => {
+                                        const def = getCardDefinition(cardId);
+                                        if (!def) return null;
+                                        return (
+                                            <Pressable
+                                                key={`${cardId}-${idx}`}
+                                                onPress={() => setEncounterPicks([...encounterPicks, cardId])}
+                                                className="border border-crema/20 rounded-lg p-2 flex-row gap-3 items-center"
+                                            >
+                                                <CardThumb cardId={cardId} size="sm" />
+                                                <View className="flex-1">
+                                                    <Text className="font-sans-semibold text-crema text-sm">
+                                                        {def.nameEs}
+                                                    </Text>
+                                                    <Text className="font-sans text-gris-pizarra text-xs">
+                                                        {TYPE_LABELS[def.type] ?? def.type}
+                                                    </Text>
+                                                </View>
+                                            </Pressable>
+                                        );
+                                    })}
+                                </ScrollView>
+                            </View>
+                        )}
+
+                        {encounterPicks.length > 0 && (
+                            <View className="gap-1">
+                                <Text className="font-sans text-gris-pizarra text-xs">
+                                    Elegidas:{' '}
+                                    {encounterPicks
+                                        .map((id) => getCardDefinition(id)?.nameEs ?? id)
+                                        .join(', ')}
+                                </Text>
+                                <Pressable
+                                    onPress={() => setEncounterPicks(encounterPicks.slice(0, -1))}
+                                    className="border border-crema/20 rounded-lg py-2 items-center"
+                                >
+                                    <Text className="font-sans-semibold text-crema text-xs">Deshacer última</Text>
+                                </Pressable>
+                            </View>
+                        )}
+                    </View>
+                )}
+
+                <View className="bg-dorado/10 border border-dorado/30 rounded-2xl p-4 gap-1">
+                    <Text className="font-sans-bold text-dorado text-sm">{step.title}</Text>
+                    <Text className="font-sans text-crema text-sm">{step.description}</Text>
+                    {step.nextStep ? (
+                        <Text className="font-sans text-gris-pizarra text-xs italic mt-1">
+                            {step.nextStep}
+                        </Text>
+                    ) : null}
                 </View>
-            )}
-        </ScrollView>
+
+                <Pressable
+                    onPress={handleConfirm}
+                    disabled={!canConfirm}
+                    className={`rounded-xl py-4 items-center ${canConfirm ? 'bg-dorado' : 'bg-dorado/40'}`}
+                >
+                    <Text className="font-sans-bold text-azul-noche text-base">
+                        {canConfirm
+                            ? 'Confirmar y continuar'
+                            : `Elige ${faceDownCount - encounterPicks.length} carta(s)`}
+                    </Text>
+                </Pressable>
+
+                {recent.length > 0 && (
+                    <View className="gap-1 pb-6">
+                        <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
+                            Lo que acaba de pasar
+                        </Text>
+                        {recent.map((explanation, index) => (
+                            <Text key={index} className="font-sans text-crema/80 text-xs">
+                                {explanation.title}: {explanation.description}
+                            </Text>
+                        ))}
+                    </View>
+                )}
+            </ScrollView>
+
+            {/* MODAL CON LA CARTA GRANDE */}
+            <Modal
+                visible={modalCardId !== null}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setModalCardId(null)}
+            >
+                <Pressable
+                    className="flex-1 items-center justify-center px-6"
+                    style={{ backgroundColor: 'rgba(10, 15, 30, 0.95)' }}
+                    onPress={() => setModalCardId(null)}
+                >
+                    {modalCardId && (
+                        <View className="items-center gap-4">
+                            <Image
+                                source={{ uri: cardImageUrl(modalCardId) }}
+                                style={{
+                                    width: modalImageWidth,
+                                    height: modalImageHeight,
+                                    borderRadius: 12,
+                                    backgroundColor: '#1a1f3a',
+                                }}
+                                resizeMode="contain"
+                            />
+                            <Text className="font-sans text-gris-pizarra text-xs text-center">
+                                Toca fuera para cerrar
+                            </Text>
+                        </View>
+                    )}
+                </Pressable>
+            </Modal>
+        </>
     );
 }

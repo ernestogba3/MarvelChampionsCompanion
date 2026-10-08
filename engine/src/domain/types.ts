@@ -1,8 +1,13 @@
 import type { GameEvent } from "../events/types";
+
 export type PlayerForm = "HERO" | "ALTER_EGO";
+
+export type Difficulty = "STANDARD" | "EXPERT";
+
 export interface PlayerState {
   id: string;
   heroName: string;
+  alterEgoName: string;
   form: PlayerForm;
   health: number;
   maxHealth: number;
@@ -10,7 +15,9 @@ export interface PlayerState {
   stunned: boolean;
   upgradesInPlay: string[];
 }
+
 export type VillainStage = "I" | "II" | "III";
+
 export interface VillainAttachmentState {
   id: string;
   cardId: string;
@@ -22,6 +29,7 @@ export interface VillainAttachmentState {
   attackBonus: number;
   discardAfterAttack: boolean;
 }
+
 export interface VillainState {
   name: string;
   stage: VillainStage;
@@ -32,6 +40,7 @@ export interface VillainState {
   tough: boolean;
   attachments: VillainAttachmentState[];
 }
+
 export interface SchemeState {
   id: string;
   name: string;
@@ -40,6 +49,7 @@ export interface SchemeState {
   escalationThreat: number;
   isMain: boolean;
 }
+
 export interface MinionState {
   id: string;
   cardId: string;
@@ -52,6 +62,7 @@ export interface MinionState {
   tough: boolean;
   guard: boolean;
 }
+
 export interface NemesisSet {
   heroName: string;
   minionCardId: string;
@@ -60,18 +71,22 @@ export interface NemesisSet {
   sideSchemeName: string;
   remainingCardIds: string[];
 }
+
 export type VillainPhaseStep =
   | "ADD_THREAT"
   | "VILLAIN_ACTIVATION"
   | "DEAL_ENCOUNTER_CARDS"
   | "REVEAL_ENCOUNTER_CARDS"
   | "PASS_FIRST_PLAYER";
+
 export type GamePhase =
   | { name: "PLAYER_PHASE" }
   | { name: "VILLAIN_PHASE"; step: VillainPhaseStep };
+
 export interface GameState {
   round: number;
   phase: GamePhase;
+  difficulty: Difficulty;
   firstPlayerId: string;
   players: PlayerState[];
   villain: VillainState;

@@ -1,7 +1,10 @@
 import type { GameState } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import { dealDamageToVillain } from "./villainDamage";
-import { advanceToRhinoStageTwo } from "./villainStages";
+import {
+  advanceToRhinoStageTwo,
+  advanceToRhinoStageThree,
+} from "./villainStages";
 import { canRemoveThreatFromMainScheme } from "./sideSchemes";
 
 export function attackVillain(
@@ -10,13 +13,32 @@ export function attackVillain(
 ): { state: GameState; events: GameEvent[] } {
   const { state: afterDamage, events } = dealDamageToVillain(state, amount);
 
-  if (afterDamage.villain.health <= 0 && afterDamage.villain.stage === "I") {
-    const { state: afterStage, events: stageEvents } =
-      advanceToRhinoStageTwo(afterDamage);
-    return {
-      state: afterStage,
-      events: [...events, ...stageEvents],
-    };
+  if (afterDamage.villain.health <= 0) {
+    // Estándar: I -> II (II es la fase final).
+    // Experto: II -> III (III es la fase final).
+    if (
+      afterDamage.difficulty === "STANDARD" &&
+      afterDamage.villain.stage === "I"
+    ) {
+      const { state: afterStage, events: stageEvents } =
+        advanceToRhinoStageTwo(afterDamage);
+      return {
+        state: afterStage,
+        events: [...events, ...stageEvents],
+      };
+    }
+    if (
+      afterDamage.difficulty === "EXPERT" &&
+      afterDamage.villain.stage === "II"
+    ) {
+      const { state: afterStage, events: stageEvents } =
+        advanceToRhinoStageThree(afterDamage);
+      return {
+        state: afterStage,
+        events: [...events, ...stageEvents],
+      };
+    }
+    // En la fase final (Standard II / Expert III) no se avanza: checkGameOutcome lo marca como WIN.
   }
 
   return { state: afterDamage, events };
@@ -32,7 +54,8 @@ export function checkGameOutcome(state: GameState): GameOutcome {
     return "LOSS";
   }
 
-  if (state.villain.stage === "II" && state.villain.health <= 0) {
+  const finalStage = state.difficulty === "EXPERT" ? "III" : "II";
+  if (state.villain.stage === finalStage && state.villain.health <= 0) {
     return "WIN";
   }
 
