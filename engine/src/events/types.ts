@@ -9,6 +9,7 @@ export type GameEvent =
   | { type: "VILLAIN_ATTACKED"; playerId: string; amount: number }
   | { type: "VILLAIN_SCHEMED"; schemeId: string; amount: number }
   | { type: "ENCOUNTER_CARD_DEALT"; playerId: string }
+  | { type: "ENCOUNTER_DECK_RESHUFFLED"; schemeId: string }
   | { type: "VILLAIN_STAGE_CHANGED"; from: VillainStage; to: VillainStage }
   | { type: "SIDE_SCHEME_ENTERED"; schemeId: string; name: string }
   | { type: "STATUS_GAINED"; targetId: string; status: "TOUGH" | "STUNNED" }

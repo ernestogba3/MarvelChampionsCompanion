@@ -27,8 +27,6 @@ import {
     getCardDefinition,
 } from 'engine';
 import type { GameState } from 'engine';
-
-type SchemeState = GameState['schemes'][number];
 import { loadGame, saveGame } from '../../storage/gameStorage';
 
 const STEPS = [
@@ -46,27 +44,6 @@ const TYPE_LABELS: Record<string, string> = {
     ATTACHMENT: 'Accesorio',
     SIDE_SCHEME: 'Plan secundario',
 };
-
-const VILLAIN_CARD_ID_BY_STAGE: Record<string, string> = {
-    I: '01094',
-    II: '01095',
-    III: '01096',
-};
-
-const MAIN_SCHEME_CARD_ID_BY_ID: Record<string, string> = {
-    'main-break-in': '01097',
-};
-
-const SIDE_SCHEME_CARD_ID_BY_NAME: Record<string, string> = {
-    'Control de multitudes': '01108',
-};
-
-function getSchemeCardId(scheme: SchemeState): string | null {
-    if (scheme.isMain) {
-        return MAIN_SCHEME_CARD_ID_BY_ID[scheme.id] ?? null;
-    }
-    return SIDE_SCHEME_CARD_ID_BY_NAME[scheme.name] ?? null;
-}
 
 const CARD_ASPECT_RATIO = 0.714;
 
@@ -262,7 +239,7 @@ export default function GameScreen() {
     const displayName = player.form === 'HERO' ? player.heroName : player.alterEgoName;
     const otherName = player.form === 'HERO' ? player.alterEgoName : player.heroName;
 
-    const villainCardId = VILLAIN_CARD_ID_BY_STAGE[state.villain.stage] ?? null;
+    const villainCardId = state.villain.cardId || null;
 
     const faceDownCount = player.faceDownEncounterCards.length;
     const encounterPool = isRevealStep
@@ -362,7 +339,7 @@ export default function GameScreen() {
                     <View className="bg-crema/5 rounded-2xl p-4 gap-3">
                         <Text className="font-sans-bold text-crema text-base">Planes</Text>
                         {state.schemes.map((scheme) => {
-                            const schemeCardId = getSchemeCardId(scheme);
+                            const schemeCardId = scheme.cardId || null;
                             return (
                                 <View key={scheme.id} className="flex-row gap-3">
                                     {schemeCardId && (
@@ -381,6 +358,11 @@ export default function GameScreen() {
                                                 {scheme.threat}/{scheme.threatToComplete}
                                             </Text>
                                         </View>
+                                        {scheme.isMain && scheme.accelerationTokens > 0 && (
+                                            <Text className="font-sans text-rojo-acento text-[10px]">
+                                                +{scheme.accelerationTokens} aceleración (mazo de encuentros barajado)
+                                            </Text>
+                                        )}
                                         <ProgressBar
                                             current={scheme.threat}
                                             max={scheme.threatToComplete}

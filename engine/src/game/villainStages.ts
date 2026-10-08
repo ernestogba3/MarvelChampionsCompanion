@@ -13,6 +13,7 @@ export function advanceToRhinoStageTwo(state: GameState): {
   });
   const newVillain = {
     ...state.villain,
+    cardId: "01095",
     stage: "II" as const,
     attack: 3,
     health: 15,
@@ -22,11 +23,13 @@ export function advanceToRhinoStageTwo(state: GameState): {
   };
   const breakinTakin: SchemeState = {
     id: "side-breakin-takin",
+    cardId: "01107",
     name: "Arramblar con todo",
     threat: 2,
     threatToComplete: 0,
     escalationThreat: 0,
     isMain: false,
+    accelerationTokens: 0,
   };
   events.push({
     type: "SIDE_SCHEME_ENTERED",
@@ -57,6 +60,7 @@ export function advanceToRhinoStageThree(state: GameState): {
   // (modelada aquí como tough: true inicial).
   const newVillain = {
     ...state.villain,
+    cardId: "01096",
     stage: "III" as const,
     attack: 4,
     health: 16,

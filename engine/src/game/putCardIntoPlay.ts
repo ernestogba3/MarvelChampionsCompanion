@@ -7,6 +7,7 @@ import {
   createCharge,
   createEnhancedIvoryHorn,
 } from "./attachments";
+
 const MINION_FACTORIES: Record<
   string,
   (id: string, engagedWith: string | null) => ReturnType<typeof createSandman>
@@ -23,6 +24,7 @@ const ATTACHMENT_FACTORIES: Record<
   "01099": createCharge,
   "01100": createEnhancedIvoryHorn,
 };
+
 export function putCardIntoPlay(
   state: GameState,
   cardId: string,
@@ -71,11 +73,13 @@ export function putCardIntoPlay(
   if (def.type === "SIDE_SCHEME") {
     const scheme = {
       id: `${cardId}-side`,
+      cardId,
       name: def.nameEs,
       threat: def.startingThreat ?? 0,
       threatToComplete: 0,
       escalationThreat: 0,
       isMain: false,
+      accelerationTokens: 0,
     };
     return {
       state: { ...state, schemes: [...state.schemes, scheme] },

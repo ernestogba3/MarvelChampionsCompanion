@@ -45,11 +45,13 @@ export function createSpiderManVsRhinoGame(
 
   const mainScheme = {
     id: "main-break-in",
+    cardId: "01097",
     name: "¡Allanamiento!",
     threat: 0,
     threatToComplete: 7,
     escalationThreat: 1,
     isMain: true,
+    accelerationTokens: 0,
   };
 
   if (difficulty === "EXPERT") {
@@ -62,6 +64,7 @@ export function createSpiderManVsRhinoGame(
       firstPlayerId: playerId,
       players: [playerState],
       villain: {
+        cardId: "01095",
         name: "Rhino",
         stage: "II",
         health: 15,
@@ -75,11 +78,13 @@ export function createSpiderManVsRhinoGame(
         mainScheme,
         {
           id: "side-breakin-takin",
+          cardId: "01107",
           name: "Arramblar con todo",
           threat: 2,
           threatToComplete: 0,
           escalationThreat: 0,
           isMain: false,
+          accelerationTokens: 0,
         },
       ],
       minions: [],
@@ -99,6 +104,7 @@ export function createSpiderManVsRhinoGame(
     firstPlayerId: playerId,
     players: [playerState],
     villain: {
+      cardId: "01094",
       name: "Rhino",
       stage: "I",
       health: 14,

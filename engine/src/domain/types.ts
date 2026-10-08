@@ -31,6 +31,7 @@ export interface VillainAttachmentState {
 }
 
 export interface VillainState {
+  cardId: string;
   name: string;
   stage: VillainStage;
   health: number;
@@ -43,11 +44,18 @@ export interface VillainState {
 
 export interface SchemeState {
   id: string;
+  cardId: string;
   name: string;
   threat: number;
   threatToComplete: number;
   escalationThreat: number;
   isMain: boolean;
+  // Tokens de aceleración permanentes. Se añade 1 cada vez que el mazo de
+  // encuentros se agota y hay que barajar el descarte (penalización oficial
+  // del Rules Reference). Se suma de forma fija (no multiplicada por nº de
+  // jugadores) a la amenaza que se añade cada ronda. Solo aplica al plan
+  // principal.
+  accelerationTokens: number;
 }
 
 export interface MinionState {

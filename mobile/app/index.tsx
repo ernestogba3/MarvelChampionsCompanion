@@ -117,6 +117,9 @@ export default function IndexScreen() {
                 Ronda {savedGame.round} · Rino {savedGame.villain.stage} ·{' '}
                 {savedGame.villain.health}/{savedGame.villain.maxHealth} VIDA
               </Text>
+              <Text className="font-sans-semibold text-dorado text-[10px] uppercase tracking-widest">
+                {savedGame.difficulty === 'EXPERT' ? 'Experto' : 'Estándar'}
+              </Text>
               <Pressable
                 onPress={handleContinue}
                 className="bg-dorado rounded-xl py-3 items-center mt-2"
@@ -135,40 +138,36 @@ export default function IndexScreen() {
             <View className="flex-row gap-2">
               <Pressable
                 onPress={() => setDifficulty('STANDARD')}
-                className={`flex-1 rounded-xl py-3 items-center border ${
-                  difficulty === 'STANDARD'
+                className={`flex-1 rounded-xl py-3 items-center border ${difficulty === 'STANDARD'
                     ? 'bg-dorado/15 border-dorado'
                     : 'border-crema/20'
-                }`}
+                  }`}
               >
                 <Text
-                  className={`font-sans-semibold text-sm ${
-                    difficulty === 'STANDARD' ? 'text-dorado' : 'text-crema'
-                  }`}
+                  className={`font-sans-semibold text-sm ${difficulty === 'STANDARD' ? 'text-dorado' : 'text-crema'
+                    }`}
                 >
                   Estándar
                 </Text>
                 <Text className="font-sans text-gris-pizarra text-[10px] mt-0.5">
-                  Rino I → II → III
+                  Rino I → II
                 </Text>
               </Pressable>
               <Pressable
                 onPress={() => setDifficulty('EXPERT')}
-                className={`flex-1 rounded-xl py-3 items-center border ${
-                  difficulty === 'EXPERT'
+                className={`flex-1 rounded-xl py-3 items-center border ${difficulty === 'EXPERT'
                     ? 'bg-dorado/15 border-dorado'
                     : 'border-crema/20'
-                }`}
+                  }`}
               >
                 <Text
-                  className={`font-sans-semibold text-sm ${
-                    difficulty === 'EXPERT' ? 'text-dorado' : 'text-crema'
-                  }`}
+                  className={`font-sans-semibold text-sm ${difficulty === 'EXPERT' ? 'text-dorado' : 'text-crema'
+                    }`}
                 >
                   Experto
                 </Text>
                 <Text className="font-sans text-gris-pizarra text-[10px] mt-0.5">
-                  Empieza en Rino II
+                  Rino II → III
                 </Text>
               </Pressable>
             </View>
@@ -176,14 +175,12 @@ export default function IndexScreen() {
 
           <Pressable
             onPress={handleNewGame}
-            className={`rounded-xl py-4 items-center ${
-              savedGame ? 'border border-crema/30' : 'bg-dorado'
-            }`}
+            className={`rounded-xl py-4 items-center ${savedGame ? 'border border-crema/30' : 'bg-dorado'
+              }`}
           >
             <Text
-              className={`font-sans-bold text-base ${
-                savedGame ? 'text-crema' : 'text-azul-noche'
-              }`}
+              className={`font-sans-bold text-base ${savedGame ? 'text-crema' : 'text-azul-noche'
+                }`}
             >
               Nueva partida
             </Text>
