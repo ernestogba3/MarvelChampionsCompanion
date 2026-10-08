@@ -1,5 +1,51 @@
+# Dependencies
 node_modules/
-dist/ 
-*.log 
-.DS_Store 
+.pnpm-store/
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# Build outputs
+build/
+*.tsbuildinfo
+
+# Vitest / coverage
+coverage/
+
+# Environment variables
 .env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+pnpm-debug.log*
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+.turbo/
