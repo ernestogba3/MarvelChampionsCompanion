@@ -68,8 +68,8 @@ describe("createRhinoGame — escalado por número de jugadores", () => {
         health: 42,
       },
     ]);
-    expect(state.players[0].health).toBe(10);
-    expect(state.players[1].health).toBe(42);
+    expect(state.players[0]!.health).toBe(10);
+    expect(state.players[1]!.health).toBe(42);
   });
 
   it("amenaza inicial del plan principal se mantiene fija en 0 sea cual sea el nº de jugadores", () => {
@@ -260,7 +260,7 @@ describe("checkGameOutcome", () => {
 
   it("LOSS si la amenaza del plan principal llega a su umbral", () => {
     const base = createSpiderManVsRhinoGame("player-1");
-    const state = { ...base, schemes: [{ ...base.schemes[0], threat: 7 }] };
+    const state = { ...base, schemes: [{ ...base.schemes[0]!, threat: 7 }] };
     expect(checkGameOutcome(state)).toBe("LOSS");
   });
 

@@ -14,11 +14,11 @@ describe("Persistencia offline (Fase 7, parte de motor)", () => {
   it("conserva los cambios hechos a mitad de partida", () => {
     const base = createSpiderManVsRhinoGame("player-1");
     const { state: afterAttack } = resolveVillainActivation(
-      { ...base, players: [{ ...base.players[0], form: "HERO" }] },
+      { ...base, players: [{ ...base.players[0]!, form: "HERO" }] },
       "player-1",
     );
     const restored = deserializeGameState(serializeGameState(afterAttack));
-    expect(restored.players[0].health).toBe(afterAttack.players[0].health);
+    expect(restored.players[0]!.health).toBe(afterAttack.players[0]!.health);
     expect(restored.eventLog).toEqual(afterAttack.eventLog);
   });
   it("lanza un error si el JSON está corrupto", () => {

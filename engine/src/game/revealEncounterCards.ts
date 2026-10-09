@@ -45,6 +45,9 @@ export function revealPendingCardsForPlayer(
     for (let i = 0; i < overrideCardIds.length; i++) {
       const original = originalFaceDown[i];
       const picked = overrideCardIds[i];
+      if (original === undefined || picked === undefined) {
+        throw new Error(`Índice fuera de rango en la posición ${i}`);
+      }
 
       if (picked === original) {
         newFaceDown.push(original);

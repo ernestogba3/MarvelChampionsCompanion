@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createSandman } from "../src/game/minions.ts";
+import { createSandman } from "../src/game/minions";
 describe("TC-015: Hombre de Arena entra con dureza", () => {
   it("se crea con el estado de dureza activo y sus valores reales", () => {
     const minion = createSandman("minion-1", "player-1");

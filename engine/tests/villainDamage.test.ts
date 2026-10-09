@@ -17,7 +17,7 @@ describe("TC-023 y TC-024: Piel blindada del Rino", () => {
     };
     const { state: after, events } = dealDamageToVillain(state, 3);
     expect(after.villain.health).toBe(14);
-    expect(after.villain.attachments[0].damageAbsorbed).toBe(3);
+    expect(after.villain.attachments[0]!.damageAbsorbed).toBe(3);
     expect(events).toContainEqual({
       type: "DAMAGE_REDIRECTED",
       toAttachmentId: "suit-1",

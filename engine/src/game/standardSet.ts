@@ -2,15 +2,18 @@ import type { GameState } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import type { Effect } from "../effects/types";
 import { applyEffects } from "../effects/applyEffect";
+
 export function resolveAdvance(state: GameState): {
   state: GameState;
   events: GameEvent[];
 } {
   const mainScheme = state.schemes.find((s) => s.isMain)!;
   const amount = state.villain.scheme;
+
   const { state: afterEffects, events: effectEvents } = applyEffects(state, [
     { type: "ADD_THREAT", target: { kind: "MAIN_SCHEME" }, amount },
   ]);
+
   return {
     state: afterEffects,
     events: [
@@ -19,14 +22,17 @@ export function resolveAdvance(state: GameState): {
     ],
   };
 }
+
 export function resolveAssault(
   state: GameState,
   playerId: string,
 ): { state: GameState; events: GameEvent[] } {
   const player = state.players.find((p) => p.id === playerId)!;
+
   if (player.form === "ALTER_EGO") {
     return applyEffects(state, [{ type: "GAIN_SURGE", cardName: "Agresión" }]);
   }
+
   const amount = state.villain.attack;
   const { state: afterEffects, events: effectEvents } = applyEffects(state, [
     {
@@ -37,39 +43,47 @@ export function resolveAssault(
     },
     { type: "QUEUE_ENCOUNTER_CARD", playerId },
   ]);
+
   return {
     state: afterEffects,
     events: [{ type: "VILLAIN_ATTACKED", playerId, amount }, ...effectEvents],
   };
 }
+
 export function resolveCaughtOffGuard(
   state: GameState,
   playerId: string,
 ): { state: GameState; events: GameEvent[] } {
   const player = state.players.find((p) => p.id === playerId)!;
-  if (player.upgradesInPlay.length === 0) {
+
+  const discarded = player.upgradesInPlay[0];
+  if (discarded === undefined) {
     return applyEffects(state, [
       { type: "GAIN_SURGE", cardName: "Con la guardia baja" },
     ]);
   }
-  const [discarded] = player.upgradesInPlay;
+
   return applyEffects(state, [
     { type: "DISCARD_UPGRADE", playerId, upgradeId: discarded },
   ]);
 }
+
 export function resolveGangUp(
   state: GameState,
   playerId: string,
 ): { state: GameState; events: GameEvent[] } {
   const player = state.players.find((p) => p.id === playerId)!;
+
   if (player.form === "ALTER_EGO") {
     return applyEffects(state, [
       { type: "GAIN_SURGE", cardName: "Todos a una" },
     ]);
   }
+
   const engagedMinions = state.minions.filter(
     (m) => m.engagedWith === playerId,
   );
+
   const effects: Effect[] = [
     {
       type: "DEAL_DAMAGE",
@@ -79,6 +93,7 @@ export function resolveGangUp(
     },
     { type: "QUEUE_ENCOUNTER_CARD", playerId },
   ];
+
   for (const m of engagedMinions) {
     effects.push({
       type: "DEAL_DAMAGE",
@@ -88,10 +103,12 @@ export function resolveGangUp(
     });
     effects.push({ type: "QUEUE_ENCOUNTER_CARD", playerId });
   }
+
   const { state: afterEffects, events: effectEvents } = applyEffects(
     state,
     effects,
   );
+
   return {
     state: afterEffects,
     events: [
@@ -100,12 +117,14 @@ export function resolveGangUp(
     ],
   };
 }
+
 export function resolveShadowOfThePast(state: GameState): {
   state: GameState;
   events: GameEvent[];
 } {
   const events: GameEvent[] = [];
   const nemesis = state.reservedNemesis;
+
   if (!nemesis) {
     events.push({
       type: "CARD_GAINED_SURGE",
@@ -113,8 +132,10 @@ export function resolveShadowOfThePast(state: GameState): {
     });
     return { state, events };
   }
+
   const titleClash = state.minions.some((m) => m.name === nemesis.minionName);
   const sideSchemeId = `nemesis-side-${nemesis.sideSchemeCardId}`;
+
   let newMinions = state.minions;
   if (!titleClash) {
     newMinions = [
@@ -138,11 +159,13 @@ export function resolveShadowOfThePast(state: GameState): {
       cardName: "Una sombra del pasado",
     });
   }
+
   events.push({
     type: "SIDE_SCHEME_ENTERED",
     schemeId: sideSchemeId,
     name: nemesis.sideSchemeName,
   });
+
   return {
     state: {
       ...state,
@@ -151,11 +174,13 @@ export function resolveShadowOfThePast(state: GameState): {
         ...state.schemes,
         {
           id: sideSchemeId,
+          cardId: nemesis.sideSchemeCardId,
           name: nemesis.sideSchemeName,
           threat: 0,
           threatToComplete: 0,
           escalationThreat: 0,
           isMain: false,
+          accelerationTokens: 0,
         },
       ],
       encounterDeck: [...state.encounterDeck, ...nemesis.remainingCardIds],

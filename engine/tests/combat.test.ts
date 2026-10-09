@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { createSpiderManVsRhinoGame } from "../src/game/createGame.ts";
-import { canAttackVillain } from "../src/game/combat.ts";
+import { createSpiderManVsRhinoGame } from "../src/game/createGame";
+import { canAttackVillain } from "../src/game/combat";
 describe("TC-010: Guardia impide atacar al villano", () => {
   it("no permite atacar si hay un esbirro con Guardia enfrentado", () => {
     const base = createSpiderManVsRhinoGame("player-1");

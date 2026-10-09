@@ -1,4 +1,5 @@
-import type { GamePhase, VillainPhaseStep } from "../domain/types.ts";
+import type { GamePhase, VillainPhaseStep } from "../domain/types";
+
 const VILLAIN_STEPS: VillainPhaseStep[] = [
   "ADD_THREAT",
   "VILLAIN_ACTIVATION",
@@ -6,13 +7,17 @@ const VILLAIN_STEPS: VillainPhaseStep[] = [
   "REVEAL_ENCOUNTER_CARDS",
   "PASS_FIRST_PLAYER",
 ];
+
 export function nextPhase(current: GamePhase): GamePhase {
   if (current.name === "PLAYER_PHASE") {
-    return { name: "VILLAIN_PHASE", step: VILLAIN_STEPS[0] };
+    // Primer paso de la fase de villano (igual que VILLAIN_STEPS[0]).
+    return { name: "VILLAIN_PHASE", step: "ADD_THREAT" };
   }
+
   const currentIndex = VILLAIN_STEPS.indexOf(current.step);
-  if (currentIndex < VILLAIN_STEPS.length - 1) {
-    return { name: "VILLAIN_PHASE", step: VILLAIN_STEPS[currentIndex + 1] };
+  const next = VILLAIN_STEPS[currentIndex + 1];
+  if (next !== undefined) {
+    return { name: "VILLAIN_PHASE", step: next };
   }
   return { name: "PLAYER_PHASE" };
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { createSpiderManVsRhinoGame } from "../src/game/createGame.ts";
-import { applyEffect, applyEffects } from "../src/effects/applyEffect.ts";
+import { createSpiderManVsRhinoGame } from "../src/game/createGame";
+import { applyEffect, applyEffects } from "../src/effects/applyEffect";
 describe("Sistema de Effects (Fase 3)", () => {
   it("DEAL_DAMAGE a un jugador reduce su vida", () => {
     const state = createSpiderManVsRhinoGame("player-1");
@@ -10,7 +10,7 @@ describe("Sistema de Effects (Fase 3)", () => {
       amount: 3,
       source: "test",
     });
-    expect(after.players[0].health).toBe(7);
+    expect(after.players[0]!.health).toBe(7);
     expect(events).toContainEqual({
       type: "DAMAGE_DEALT",
       targetId: "player-1",
@@ -25,7 +25,7 @@ describe("Sistema de Effects (Fase 3)", () => {
       target: { kind: "MAIN_SCHEME" },
       amount: 2,
     });
-    expect(after.schemes[0].threat).toBe(2);
+    expect(after.schemes[0]!.threat).toBe(2);
   });
   it("applyEffects resuelve varios efectos en orden", () => {
     const state = createSpiderManVsRhinoGame("player-1");
@@ -39,7 +39,7 @@ describe("Sistema de Effects (Fase 3)", () => {
       { type: "ADD_THREAT", target: { kind: "MAIN_SCHEME" }, amount: 1 },
     ]);
     expect(after.villain.health).toBe(12);
-    expect(after.schemes[0].threat).toBe(1);
+    expect(after.schemes[0]!.threat).toBe(1);
     expect(events).toHaveLength(2);
   });
   it("un villano con dureza previene el daño y pierde el estado", () => {

@@ -6,13 +6,13 @@ describe("TC-003: activación del villano según identidad", () => {
     const base = createSpiderManVsRhinoGame("player-1");
     const state = {
       ...base,
-      players: [{ ...base.players[0], form: "HERO" as const }],
+      players: [{ ...base.players[0]!, form: "HERO" as const }],
     };
     const { state: after, events } = resolveVillainActivation(
       state,
       "player-1",
     );
-    expect(after.players[0].health).toBe(8);
+    expect(after.players[0]!.health).toBe(8);
     expect(after.pendingEncounterDeals).toContain("player-1");
     expect(events).toContainEqual({
       type: "VILLAIN_ATTACKED",
@@ -26,8 +26,8 @@ describe("TC-003: activación del villano según identidad", () => {
       state,
       "player-1",
     );
-    expect(after.players[0].health).toBe(10);
-    expect(after.schemes[0].threat).toBe(1);
+    expect(after.players[0]!.health).toBe(10);
+    expect(after.schemes[0]!.threat).toBe(1);
     expect(after.pendingEncounterDeals).toHaveLength(0);
     expect(events).toContainEqual({
       type: "VILLAIN_SCHEMED",
@@ -39,7 +39,7 @@ describe("TC-003: activación del villano según identidad", () => {
     const base = createSpiderManVsRhinoGame("player-1");
     const state = {
       ...base,
-      players: [{ ...base.players[0], form: "HERO" as const }],
+      players: [{ ...base.players[0]!, form: "HERO" as const }],
       minions: [
         {
           id: "m1",
@@ -56,21 +56,21 @@ describe("TC-003: activación del villano según identidad", () => {
       ],
     };
     const { state: after } = resolveVillainActivation(state, "player-1");
-    expect(after.players[0].health).toBe(7);
+    expect(after.players[0]!.health).toBe(7);
     expect(after.pendingEncounterDeals).toEqual(["player-1", "player-1"]);
   });
   it("carta de impulso con icono 2 (Embestida) suma al ataque del villano", () => {
     const base = createSpiderManVsRhinoGame("player-1");
     const state = {
       ...base,
-      players: [{ ...base.players[0], form: "HERO" as const }],
+      players: [{ ...base.players[0]!, form: "HERO" as const }],
       encounterDeck: ["01099"],
     };
     const { state: after, events } = resolveVillainActivation(
       state,
       "player-1",
     );
-    expect(after.players[0].health).toBe(6);
+    expect(after.players[0]!.health).toBe(6);
     expect(events).toContainEqual({
       type: "VILLAIN_ATTACKED",
       playerId: "player-1",
@@ -91,7 +91,7 @@ describe("TC-003: activación del villano según identidad", () => {
       state,
       "player-1",
     );
-    expect(after.schemes[0].threat).toBe(1);
+    expect(after.schemes[0]!.threat).toBe(1);
     expect(events).toContainEqual({
       type: "BOOST_CARD_REVEALED",
       cardId: "01186",
@@ -105,7 +105,7 @@ describe("TC-003: activación del villano según identidad", () => {
       state,
       "player-1",
     );
-    expect(after.schemes[0].threat).toBe(3);
+    expect(after.schemes[0]!.threat).toBe(3);
     const mainScheme = after.schemes.find((s) => s.isMain)!;
     expect(mainScheme.accelerationTokens).toBe(1);
     expect(events).toContainEqual(
@@ -116,7 +116,7 @@ describe("TC-003: activación del villano según identidad", () => {
     const base = createSpiderManVsRhinoGame("player-1");
     const state = {
       ...base,
-      players: [{ ...base.players[0], form: "HERO" as const }],
+      players: [{ ...base.players[0]!, form: "HERO" as const }],
       encounterDeck: ["01099"],
       minions: [
         {
@@ -134,6 +134,6 @@ describe("TC-003: activación del villano según identidad", () => {
       ],
     };
     const { state: after } = resolveVillainActivation(state, "player-1");
-    expect(after.players[0].health).toBe(5);
+    expect(after.players[0]!.health).toBe(5);
   });
 });

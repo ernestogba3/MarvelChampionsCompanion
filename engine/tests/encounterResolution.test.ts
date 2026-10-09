@@ -10,7 +10,7 @@ describe("Registro de resolución de cartas reveladas (Fase 4)", () => {
   it('resuelve "Mover ficha" (01186) a través del registro', () => {
     const state = createSpiderManVsRhinoGame("player-1");
     const { state: after } = resolveRevealedCard(state, "01186", "player-1");
-    expect(after.schemes[0].threat).toBe(1);
+    expect(after.schemes[0]!.threat).toBe(1);
   });
   it("lanza un error si la carta no tiene resolución registrada", () => {
     const state = createSpiderManVsRhinoGame("player-1");

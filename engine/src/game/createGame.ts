@@ -1,4 +1,4 @@
-import type { Difficulty, GameState, PlayerState } from "../domain/types.ts";
+import type { Difficulty, GameState, PlayerState } from "../domain/types";
 
 const RHINO_STANDARD_ENCOUNTER_DECK: string[] = [
   "01098",
@@ -54,8 +54,12 @@ function buildPlayers(setups: PlayerSetup[]): PlayerState[] {
     faceDownEncounterCards: [],
     stunned: false,
     upgradesInPlay: [],
-    heroCardId: setup.heroCardId,
-    alterEgoCardId: setup.alterEgoCardId,
+    // Con exactOptionalPropertyTypes no se puede asignar undefined a un campo
+    // opcional: solo incluimos la propiedad cuando hay valor.
+    ...(setup.heroCardId !== undefined && { heroCardId: setup.heroCardId }),
+    ...(setup.alterEgoCardId !== undefined && {
+      alterEgoCardId: setup.alterEgoCardId,
+    }),
   }));
 }
 
@@ -77,7 +81,11 @@ export function createRhinoGame(
 
   const playerCount = playerSetups.length;
   const players = buildPlayers(playerSetups);
-  const firstPlayerId = players[0].id;
+  const firstPlayer = players[0];
+  if (firstPlayer === undefined) {
+    throw new Error("Se necesita al menos un jugador para crear la partida.");
+  }
+  const firstPlayerId = firstPlayer.id;
 
   const mainScheme = {
     id: "main-break-in",

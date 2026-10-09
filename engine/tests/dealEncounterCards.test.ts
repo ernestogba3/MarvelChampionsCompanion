@@ -11,7 +11,7 @@ describe("dealPendingEncounterCards", () => {
       pendingEncounterDeals: ["player-1"],
     };
     const { state: after, events } = dealPendingEncounterCards(state);
-    expect(after.players[0].faceDownEncounterCards).toHaveLength(1);
+    expect(after.players[0]!.faceDownEncounterCards).toHaveLength(1);
     expect(after.encounterDeck).toHaveLength(base.encounterDeck.length - 1);
     expect(events).toContainEqual(
       expect.objectContaining({ type: "ENCOUNTER_CARD_DEALT" }),
@@ -27,7 +27,7 @@ describe("dealPendingEncounterCards", () => {
       pendingEncounterDeals: ["player-1"],
     };
     const { state: after, events } = dealPendingEncounterCards(state);
-    expect(after.players[0].faceDownEncounterCards).toHaveLength(1);
+    expect(after.players[0]!.faceDownEncounterCards).toHaveLength(1);
     expect(after.encounterDiscard).toHaveLength(0);
     // Quedó 1 carta en el mazo tras barajar 2 y repartir 1
     expect(after.encounterDeck).toHaveLength(1);
@@ -51,7 +51,7 @@ describe("dealPendingEncounterCards", () => {
     const { state: after } = dealPendingEncounterCards(state);
     const mainScheme = after.schemes.find((s) => s.isMain)!;
     expect(mainScheme.accelerationTokens).toBe(1);
-    expect(after.players[0].faceDownEncounterCards).toHaveLength(1);
+    expect(after.players[0]!.faceDownEncounterCards).toHaveLength(1);
   });
 
   it("el token de aceleración se suma de forma fija en addThreatStep (no se multiplica por jugadores)", () => {

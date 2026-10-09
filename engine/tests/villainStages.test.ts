@@ -35,7 +35,7 @@ describe("villain stages", () => {
     expect(after.villain.maxHealth).toBe(16);
     expect(after.villain.attack).toBe(4);
     expect(after.villain.tough).toBe(true);
-    expect(after.players[0].stunned).toBe(true);
+    expect(after.players[0]!.stunned).toBe(true);
     expect(events).toContainEqual(
       expect.objectContaining({
         type: "VILLAIN_STAGE_CHANGED",

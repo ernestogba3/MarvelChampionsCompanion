@@ -1,6 +1,7 @@
 import type { GameState } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import type { Effect } from "./types";
+
 export function applyEffect(
   state: GameState,
   effect: Effect,
@@ -16,6 +17,7 @@ export function applyEffect(
             ],
           };
         }
+
         const suit = state.villain.attachments.find((a) => a.redirectsDamage);
         if (suit) {
           const newDamage = suit.damageAbsorbed + effect.amount;
@@ -26,6 +28,7 @@ export function applyEffect(
               amount: effect.amount,
             },
           ];
+
           let attachments = state.villain.attachments.map((a) =>
             a.id === suit.id ? { ...a, damageAbsorbed: newDamage } : a,
           );
@@ -36,11 +39,13 @@ export function applyEffect(
             });
             attachments = attachments.filter((a) => a.id !== suit.id);
           }
+
           return {
             state: { ...state, villain: { ...state.villain, attachments } },
             events,
           };
         }
+
         const newHealth = Math.max(0, state.villain.health - effect.amount);
         return {
           state: { ...state, villain: { ...state.villain, health: newHealth } },
@@ -54,6 +59,7 @@ export function applyEffect(
           ],
         };
       }
+
       if (effect.target.kind === "PLAYER") {
         const pid = effect.target.playerId;
         return {
@@ -75,8 +81,10 @@ export function applyEffect(
           ],
         };
       }
+
       return { state, events: [] };
     }
+
     case "HEAL": {
       if (effect.target.kind === "VILLAIN") {
         const healed = Math.min(
@@ -103,6 +111,7 @@ export function applyEffect(
       }
       return { state, events: [] };
     }
+
     case "ADD_THREAT": {
       if (effect.target.kind === "MAIN_SCHEME") {
         const scheme = state.schemes.find((s) => s.isMain)!;
@@ -124,12 +133,16 @@ export function applyEffect(
           ],
         };
       }
+
       if (effect.target.kind === "SCHEME") {
+        // Se extrae a una constante para que el estrechamiento de tipo
+        // sobreviva dentro del callback de map.
+        const schemeId = effect.target.schemeId;
         return {
           state: {
             ...state,
             schemes: state.schemes.map((s) =>
-              s.id === effect.target.schemeId
+              s.id === schemeId
                 ? { ...s, threat: s.threat + effect.amount }
                 : s,
             ),
@@ -137,14 +150,16 @@ export function applyEffect(
           events: [
             {
               type: "THREAT_ADDED",
-              schemeId: effect.target.schemeId,
+              schemeId,
               amount: effect.amount,
             },
           ],
         };
       }
+
       return { state, events: [] };
     }
+
     case "GAIN_STATUS": {
       if (effect.target.kind === "VILLAIN" && effect.status === "TOUGH") {
         return {
@@ -154,6 +169,7 @@ export function applyEffect(
           ],
         };
       }
+
       if (effect.target.kind === "PLAYER" && effect.status === "STUNNED") {
         const pid = effect.target.playerId;
         return {
@@ -166,14 +182,17 @@ export function applyEffect(
           events: [{ type: "STATUS_GAINED", targetId: pid, status: "STUNNED" }],
         };
       }
+
       return { state, events: [] };
     }
+
     case "GAIN_SURGE": {
       return {
         state,
         events: [{ type: "CARD_GAINED_SURGE", cardName: effect.cardName }],
       };
     }
+
     case "QUEUE_ENCOUNTER_CARD": {
       return {
         state: {
@@ -186,6 +205,7 @@ export function applyEffect(
         events: [],
       };
     }
+
     case "DISCARD_UPGRADE": {
       return {
         state: {
@@ -210,20 +230,24 @@ export function applyEffect(
         ],
       };
     }
+
     default:
       return { state, events: [] };
   }
 }
+
 export function applyEffects(
   state: GameState,
   effects: Effect[],
 ): { state: GameState; events: GameEvent[] } {
   let currentState = state;
   const allEvents: GameEvent[] = [];
+
   for (const effect of effects) {
     const result = applyEffect(currentState, effect);
     currentState = result.state;
     allEvents.push(...result.events);
   }
+
   return { state: currentState, events: allEvents };
 }

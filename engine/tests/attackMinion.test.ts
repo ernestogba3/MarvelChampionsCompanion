@@ -22,7 +22,7 @@ describe("attackMinion", () => {
       ],
     };
     const { state: after } = attackMinion(state, "m1", 2);
-    expect(after.minions[0].health).toBe(1);
+    expect(after.minions[0]!.health).toBe(1);
   });
   it("elimina al esbirro si su vida llega a 0", () => {
     const base = createSpiderManVsRhinoGame("player-1");
@@ -66,8 +66,8 @@ describe("attackMinion", () => {
       ],
     };
     const { state: after, events } = attackMinion(state, "m1", 10);
-    expect(after.minions[0].health).toBe(4);
-    expect(after.minions[0].tough).toBe(false);
+    expect(after.minions[0]!.health).toBe(4);
+    expect(after.minions[0]!.tough).toBe(false);
     expect(events).toContainEqual({
       type: "STATUS_REMOVED",
       targetId: "m1",

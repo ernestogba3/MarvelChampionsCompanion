@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { createSpiderManVsRhinoGame } from "../src/game/createGame.ts";
+import { createSpiderManVsRhinoGame } from "../src/game/createGame";
 import {
   resolveImTough,
   resolveHardToKeepDown,
   resolveStampede,
-} from "../src/game/villainTreacheries.ts";
+} from "../src/game/villainTreacheries";
 describe("Tratados de Rino", () => {
   it('TC-017: "¡Soy duro!" da dureza si Rino no la tiene', () => {
     const state = createSpiderManVsRhinoGame("player-1");
@@ -55,11 +55,11 @@ describe("Tratados de Rino", () => {
     const base = createSpiderManVsRhinoGame("player-1");
     const state = {
       ...base,
-      players: [{ ...base.players[0], form: "HERO" as const }],
+      players: [{ ...base.players[0]!, form: "HERO" as const }],
     };
     const { state: after, events } = resolveStampede(state, "player-1");
-    expect(after.players[0].health).toBe(8);
-    expect(after.players[0].stunned).toBe(true);
+    expect(after.players[0]!.health).toBe(8);
+    expect(after.players[0]!.stunned).toBe(true);
     expect(events).toContainEqual({
       type: "STATUS_GAINED",
       targetId: "player-1",

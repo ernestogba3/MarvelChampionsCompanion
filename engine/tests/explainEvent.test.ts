@@ -38,6 +38,6 @@ describe("Sistema educativo (Fase 5, pasos 2-4)", () => {
     const { state: after } = runAndLog(resolveImTough, state);
     const explanations = explainRecentEvents(after, 1);
     expect(explanations).toHaveLength(1);
-    expect(explanations[0].title).toBe("Dureza");
+    expect(explanations[0]!.title).toBe("Dureza");
   });
 });

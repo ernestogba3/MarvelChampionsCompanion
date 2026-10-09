@@ -25,3 +25,19 @@ export type { GameOutcome } from "./playerActions";
 export { canAttackVillain } from "./combat";
 export { CARD_CATALOG, getCardDefinition } from "../data/cards";
 export type { CardDefinition, CardType, EncounterSet } from "../data/cards";
+export {
+  validateDeck,
+  ASPECT_FACTIONS,
+  BASIC_FACTION,
+  HERO_FACTION,
+  DECK_MIN_CARDS,
+  DECK_MAX_CARDS,
+} from "../deck/deckRules";
+export type {
+  AspectFaction,
+  DeckCardInfo,
+  CardIndex,
+  DeckDefinition,
+  MissingCopies,
+  DeckValidation,
+} from "../deck/deckRules";

@@ -1,19 +1,18 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
     // "rootDir": "./src",
     // "outDir": "./dist",
 
     // Environment Settings
-    // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
+    // Antes: "module": "nodenext" (exige extensiones .js en los imports relativos)
+    // Ahora: ESNext + moduleResolution "bundler" acepta imports sin extensión,
+    // igual que Metro en la app móvil.
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "target": "esnext",
     "types": [],
-    // For nodejs:
-    // "lib": ["esnext"],
-    // "types": ["node"],
-    // and npm install -D @types/node
+    // "lib": ["esnext"], "types": ["node"], npm install -D @types/node
 
     // Other Outputs
     "sourceMap": true,
@@ -24,13 +23,9 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
 
-    // Style Options
-    // "noImplicitReturns": true,
-    // "noImplicitOverride": true,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
-    // "noFallthroughCasesInSwitch": true,
-    // "noPropertyAccessFromIndexSignature": true,
+    // Style Options (todas comentadas: noImplicitReturns, noImplicitOverride,
+    // noUnusedLocals, noUnusedParameters, noFallthroughCasesInSwitch,
+    // noPropertyAccessFromIndexSignature)
 
     // Recommended Options
     "strict": true,
@@ -39,6 +34,6 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   }
 }

@@ -1,1 +1,148 @@
-import { describe, it, expect } from 'vitest'; import { createSpiderManVsRhinoGame } from '../src/game/createGame'; import { resolveAdvance, resolveAssault, resolveCaughtOffGuard, resolveGangUp, resolveShadowOfThePast } from '../src/game/standardSet'; describe('Set Standard / Normal', () => { it('TC-029: "Mover ficha" avanza el plan sin atacar', () => { const state = createSpiderManVsRhinoGame('player-1'); const { state: after, events } = resolveAdvance(state); expect(after.schemes[0].threat).toBe(1); expect(after.players[0].health).toBe(10); expect(events).toContainEqual({ type: 'VILLAIN_SCHEMED', schemeId: 'main-break-in', amount: 1 }); }); it('TC-030: "Agresión" gana oleada en alter ego', () => { const state = createSpiderManVsRhinoGame('player-1'); const { events } = resolveAssault(state, 'player-1'); expect(events).toContainEqual({ type: 'CARD_GAINED_SURGE', cardName: 'Agresión' }); }); it('TC-031: "Agresión" ataca en forma de héroe', () => { const base = createSpiderManVsRhinoGame('player-1'); const state = { ...base, players: [{ ...base.players[0], form: 'HERO' as const }] }; const { state: after } = resolveAssault(state, 'player-1'); expect(after.players[0].health).toBe(8); }); it('TC-032: "Con la guardia baja" descarta un upgrade', () => { const base = createSpiderManVsRhinoGame('player-1'); const state = { ...base, players: [{ ...base.players[0], upgradesInPlay: ['upgrade-1'] }] }; const { state: after, events } = resolveCaughtOffGuard(state, 'player-1'); expect(after.players[0].upgradesInPlay).toEqual([]); expect(events).toContainEqual({ type: 'UPGRADE_DISCARDED', playerId: 'player-1', upgradeId: 'upgrade-1' }); }); it('TC-033: "Con la guardia baja" gana oleada sin upgrades', () => { const state = createSpiderManVsRhinoGame('player-1'); const { events } = resolveCaughtOffGuard(state, 'player-1'); expect(events).toContainEqual({ type: 'CARD_GAINED_SURGE', cardName: 'Con la guardia baja' }); }); it('TC-034: "Todos a una" ataca con el villano y cada esbirro enfrentado', () => { const base = createSpiderManVsRhinoGame('player-1'); const state = { ...base, players: [{ ...base.players[0], form: 'HERO' as const }], minions: [{ id: 'm1', cardId: '01101', name: 'Mercenario de Hydra', attack: 1, scheme: 0, health: 3, maxHealth: 3, engagedWith: 'player-1', tough: false, guard: false }], }; const { state: after } = resolveGangUp(state, 'player-1'); expect(after.players[0].health).toBe(7); expect(after.pendingEncounterDeals).toEqual(['player-1', 'player-1']); }); it('TC-035: "Una sombra del pasado" mete al némesis si no hay choque', () => { const base = createSpiderManVsRhinoGame('player-1'); const state = { ...base, reservedNemesis: { heroName: 'Spider-Man', minionCardId: 'fake-nemesis', minionName: 'Esbirro némesis de prueba', sideSchemeCardId: 'fake-side', sideSchemeName: 'Side scheme némesis de prueba', remainingCardIds: ['fake-1', 'fake-2'] }, }; const { state: after, events } = resolveShadowOfThePast(state); expect(after.minions.some((m) => m.name === 'Esbirro némesis de prueba')).toBe(true); expect(after.reservedNemesis).toBeNull(); expect(events).not.toContainEqual(expect.objectContaining({ type: 'CARD_GAINED_SURGE' })); }); it('TC-036: "Una sombra del pasado" gana oleada si hay choque de nombre', () => { const base = createSpiderManVsRhinoGame('player-1'); const state = { ...base, reservedNemesis: { heroName: 'Spider-Man', minionCardId: 'fake-nemesis', minionName: 'Esbirro némesis de prueba', sideSchemeCardId: 'fake-side', sideSchemeName: 'Side scheme némesis de prueba', remainingCardIds: [] }, minions: [{ id: 'existing', cardId: 'x', name: 'Esbirro némesis de prueba', attack: 1, scheme: 1, health: 1, maxHealth: 1, engagedWith: null, tough: false, guard: false }], }; const { events } = resolveShadowOfThePast(state); expect(events).toContainEqual({ type: 'CARD_GAINED_SURGE', cardName: 'Una sombra del pasado' }); }); });
+import { describe, it, expect } from "vitest";
+import { createSpiderManVsRhinoGame } from "../src/game/createGame";
+import {
+  resolveAdvance,
+  resolveAssault,
+  resolveCaughtOffGuard,
+  resolveGangUp,
+  resolveShadowOfThePast,
+} from "../src/game/standardSet";
+
+describe("Set Standard / Normal", () => {
+  it('TC-029: "Mover ficha" avanza el plan sin atacar', () => {
+    const state = createSpiderManVsRhinoGame("player-1");
+    const { state: after, events } = resolveAdvance(state);
+    expect(after.schemes[0]!.threat).toBe(1);
+    expect(after.players[0]!.health).toBe(10);
+    expect(events).toContainEqual({
+      type: "VILLAIN_SCHEMED",
+      schemeId: "main-break-in",
+      amount: 1,
+    });
+  });
+
+  it('TC-030: "Agresión" gana oleada en alter ego', () => {
+    const state = createSpiderManVsRhinoGame("player-1");
+    const { events } = resolveAssault(state, "player-1");
+    expect(events).toContainEqual({
+      type: "CARD_GAINED_SURGE",
+      cardName: "Agresión",
+    });
+  });
+
+  it('TC-031: "Agresión" ataca en forma de héroe', () => {
+    const base = createSpiderManVsRhinoGame("player-1");
+    const state = {
+      ...base,
+      players: [{ ...base.players[0]!, form: "HERO" as const }],
+    };
+    const { state: after } = resolveAssault(state, "player-1");
+    expect(after.players[0]!.health).toBe(8);
+  });
+
+  it('TC-032: "Con la guardia baja" descarta un upgrade', () => {
+    const base = createSpiderManVsRhinoGame("player-1");
+    const state = {
+      ...base,
+      players: [{ ...base.players[0]!, upgradesInPlay: ["upgrade-1"] }],
+    };
+    const { state: after, events } = resolveCaughtOffGuard(state, "player-1");
+    expect(after.players[0]!.upgradesInPlay).toEqual([]);
+    expect(events).toContainEqual({
+      type: "UPGRADE_DISCARDED",
+      playerId: "player-1",
+      upgradeId: "upgrade-1",
+    });
+  });
+
+  it('TC-033: "Con la guardia baja" gana oleada sin upgrades', () => {
+    const state = createSpiderManVsRhinoGame("player-1");
+    const { events } = resolveCaughtOffGuard(state, "player-1");
+    expect(events).toContainEqual({
+      type: "CARD_GAINED_SURGE",
+      cardName: "Con la guardia baja",
+    });
+  });
+
+  it('TC-034: "Todos a una" ataca con el villano y cada esbirro enfrentado', () => {
+    const base = createSpiderManVsRhinoGame("player-1");
+    const state = {
+      ...base,
+      players: [{ ...base.players[0]!, form: "HERO" as const }],
+      minions: [
+        {
+          id: "m1",
+          cardId: "01101",
+          name: "Mercenario de Hydra",
+          attack: 1,
+          scheme: 0,
+          health: 3,
+          maxHealth: 3,
+          engagedWith: "player-1",
+          tough: false,
+          guard: false,
+        },
+      ],
+    };
+    const { state: after } = resolveGangUp(state, "player-1");
+    expect(after.players[0]!.health).toBe(7);
+    expect(after.pendingEncounterDeals).toEqual(["player-1", "player-1"]);
+  });
+
+  it('TC-035: "Una sombra del pasado" mete al némesis si no hay choque', () => {
+    const base = createSpiderManVsRhinoGame("player-1");
+    const state = {
+      ...base,
+      reservedNemesis: {
+        heroName: "Spider-Man",
+        minionCardId: "fake-nemesis",
+        minionName: "Esbirro némesis de prueba",
+        sideSchemeCardId: "fake-side",
+        sideSchemeName: "Side scheme némesis de prueba",
+        remainingCardIds: ["fake-1", "fake-2"],
+      },
+    };
+    const { state: after, events } = resolveShadowOfThePast(state);
+    expect(
+      after.minions.some((m) => m.name === "Esbirro némesis de prueba"),
+    ).toBe(true);
+    expect(after.reservedNemesis).toBeNull();
+    expect(events).not.toContainEqual(
+      expect.objectContaining({ type: "CARD_GAINED_SURGE" }),
+    );
+  });
+
+  it('TC-036: "Una sombra del pasado" gana oleada si hay choque de nombre', () => {
+    const base = createSpiderManVsRhinoGame("player-1");
+    const state = {
+      ...base,
+      reservedNemesis: {
+        heroName: "Spider-Man",
+        minionCardId: "fake-nemesis",
+        minionName: "Esbirro némesis de prueba",
+        sideSchemeCardId: "fake-side",
+        sideSchemeName: "Side scheme némesis de prueba",
+        remainingCardIds: [],
+      },
+      minions: [
+        {
+          id: "existing",
+          cardId: "x",
+          name: "Esbirro némesis de prueba",
+          attack: 1,
+          scheme: 1,
+          health: 1,
+          maxHealth: 1,
+          engagedWith: null,
+          tough: false,
+          guard: false,
+        },
+      ],
+    };
+    const { events } = resolveShadowOfThePast(state);
+    expect(events).toContainEqual({
+      type: "CARD_GAINED_SURGE",
+      cardName: "Una sombra del pasado",
+    });
+  });
+});

@@ -4,9 +4,9 @@ import { thwartScheme } from "../src/game/playerActions";
 describe("thwartScheme", () => {
   it("quita amenaza del plan principal", () => {
     const base = createSpiderManVsRhinoGame("player-1");
-    const state = { ...base, schemes: [{ ...base.schemes[0], threat: 5 }] };
+    const state = { ...base, schemes: [{ ...base.schemes[0]!, threat: 5 }] };
     const { state: after, events } = thwartScheme(state, "main-break-in", 2);
-    expect(after.schemes[0].threat).toBe(3);
+    expect(after.schemes[0]!.threat).toBe(3);
     expect(events).toContainEqual({
       type: "THREAT_REMOVED",
       schemeId: "main-break-in",
@@ -18,14 +18,16 @@ describe("thwartScheme", () => {
     const state = {
       ...base,
       schemes: [
-        { ...base.schemes[0], threat: 5 },
+        { ...base.schemes[0]!, threat: 5 },
         {
           id: "side-2",
+          cardId: "01108",
           name: "Control de multitudes",
           threat: 2,
           threatToComplete: 0,
           escalationThreat: 0,
           isMain: false,
+          accelerationTokens: 0,
         },
       ],
     };
@@ -40,11 +42,13 @@ describe("thwartScheme", () => {
         ...base.schemes,
         {
           id: "side-1",
+          cardId: "01107",
           name: "Arramblar con todo",
           threat: 2,
           threatToComplete: 0,
           escalationThreat: 0,
           isMain: false,
+          accelerationTokens: 0,
         },
       ],
     };
