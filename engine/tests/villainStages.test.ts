@@ -48,10 +48,10 @@ describe("villain stages", () => {
   it("Standard: matar a Rino II gana la partida (no pasa a III)", () => {
     const base = createSpiderManVsRhinoGame("player-1", "STANDARD");
     // Mato a Rino I, pasa a II
-    const atII = attackVillain(base, 14).state;
+    const atII = attackVillain(base, "player-1", 14).state;
     expect(atII.villain.stage).toBe("II");
     // Mato a Rino II
-    const { state: afterKillII } = attackVillain(atII, 15);
+    const { state: afterKillII } = attackVillain(atII, "player-1", 15);
     expect(afterKillII.villain.stage).toBe("II");
     expect(afterKillII.villain.health).toBe(0);
     expect(checkGameOutcome(afterKillII)).toBe("WIN");
@@ -59,7 +59,7 @@ describe("villain stages", () => {
 
   it("Expert: matar a Rino II pasa a III y NO gana", () => {
     const base = createSpiderManVsRhinoGame("player-1", "EXPERT");
-    const { state: after } = attackVillain(base, 15);
+    const { state: after } = attackVillain(base, "player-1", 15);
     expect(after.villain.stage).toBe("III");
     expect(after.villain.health).toBe(16);
     expect(checkGameOutcome(after)).toBe("ONGOING");
@@ -69,10 +69,10 @@ describe("villain stages", () => {
     const base = createSpiderManVsRhinoGame("player-1", "EXPERT");
     const atIII = advanceToRhinoStageThree(base).state;
     // Primer golpe consume tough (Dureza)
-    const afterFirst = attackVillain(atIII, 5).state;
+    const afterFirst = attackVillain(atIII, "player-1", 5).state;
     expect(afterFirst.villain.tough).toBe(false);
     // Golpe final
-    const { state: afterKill } = attackVillain(afterFirst, 16);
+    const { state: afterKill } = attackVillain(afterFirst, "player-1", 16);
     expect(afterKill.villain.stage).toBe("III");
     expect(afterKill.villain.health).toBe(0);
     expect(checkGameOutcome(afterKill)).toBe("WIN");

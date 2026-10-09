@@ -19,6 +19,7 @@ export interface CardDefinition {
   startingThreat?: number;
   escalationThreat?: number;
   threatToComplete?: number;
+  boost?: number;
 }
 export const CARD_CATALOG: Record<string, CardDefinition> = {
   "01094": {
@@ -71,6 +72,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     type: "ATTACHMENT",
     set: "RHINO",
     traits: ["Armor"],
+    boost: 0,
   },
   "01099": {
     id: "01099",
@@ -78,6 +80,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     nameEs: "Embestida",
     type: "ATTACHMENT",
     set: "RHINO",
+    boost: 2,
   },
   "01100": {
     id: "01100",
@@ -86,6 +89,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     type: "ATTACHMENT",
     set: "RHINO",
     traits: ["Weapon"],
+    boost: 2,
   },
   "01101": {
     id: "01101",
@@ -97,6 +101,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     attack: 1,
     scheme: 0,
     health: 3,
+    boost: 1,
   },
   "01102": {
     id: "01102",
@@ -108,6 +113,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     attack: 3,
     scheme: 2,
     health: 4,
+    boost: 2,
   },
   "01103": {
     id: "01103",
@@ -119,6 +125,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     attack: 2,
     scheme: 1,
     health: 3,
+    boost: 2,
   },
   "01104": {
     id: "01104",
@@ -126,6 +133,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     nameEs: "Difícil de tumbar",
     type: "TREACHERY",
     set: "RHINO",
+    boost: 0,
   },
   "01105": {
     id: "01105",
@@ -133,6 +141,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     nameEs: '"¡Soy duro!"',
     type: "TREACHERY",
     set: "RHINO",
+    boost: 0,
   },
   "01106": {
     id: "01106",
@@ -140,6 +149,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     nameEs: "Estampida",
     type: "TREACHERY",
     set: "RHINO",
+    boost: 1,
   },
   "01107": {
     id: "01107",
@@ -148,6 +158,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     type: "SIDE_SCHEME",
     set: "RHINO",
     startingThreat: 2,
+    boost: 2,
   },
   "01108": {
     id: "01108",
@@ -156,6 +167,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     type: "SIDE_SCHEME",
     set: "RHINO",
     startingThreat: 2,
+    boost: 2,
   },
   "01186": {
     id: "01186",
@@ -163,6 +175,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     nameEs: "Mover ficha",
     type: "TREACHERY",
     set: "STANDARD",
+    boost: 0,
   },
   "01187": {
     id: "01187",
@@ -170,6 +183,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     nameEs: "Agresión",
     type: "TREACHERY",
     set: "STANDARD",
+    boost: 0,
   },
   "01188": {
     id: "01188",
@@ -177,6 +191,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     nameEs: "Con la guardia baja",
     type: "TREACHERY",
     set: "STANDARD",
+    boost: 1,
   },
   "01189": {
     id: "01189",
@@ -184,6 +199,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     nameEs: "Todos a una",
     type: "TREACHERY",
     set: "STANDARD",
+    boost: 1,
   },
   "01190": {
     id: "01190",
@@ -191,6 +207,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     nameEs: "Una sombra del pasado",
     type: "TREACHERY",
     set: "STANDARD",
+    boost: 2,
   },
 };
 export function getCardDefinition(id: string): CardDefinition | undefined {

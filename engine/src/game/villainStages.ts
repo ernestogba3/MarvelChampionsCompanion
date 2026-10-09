@@ -11,13 +11,16 @@ export function advanceToRhinoStageTwo(state: GameState): {
     from: state.villain.stage,
     to: "II",
   });
+  // Los PG de Rino (II) escalan ×nº de jugadores (confirmado contra el RRG
+  // v1.7 / datos per-player de marvelcdb), igual que al crear la partida.
+  const health = 15 * state.players.length;
   const newVillain = {
     ...state.villain,
     cardId: "01095",
     stage: "II" as const,
     attack: 3,
-    health: 15,
-    maxHealth: 15,
+    health,
+    maxHealth: health,
     scheme: 1,
     tough: false,
   };
@@ -56,15 +59,17 @@ export function advanceToRhinoStageThree(state: GameState): {
     from: state.villain.stage,
     to: "III",
   });
-  // Rino III (01096): vida 16, ATQ 4, Plan 1. Palabra clave: Dureza
-  // (modelada aquí como tough: true inicial).
+  // Rino III (01096): ATQ 4, Plan 1, PG escalan ×nº de jugadores igual que
+  // en el resto de estadios. Palabra clave: Resistente (modelada aquí como
+  // tough: true inicial — confirmado que Rino III la lleva impresa).
+  const health = 16 * state.players.length;
   const newVillain = {
     ...state.villain,
     cardId: "01096",
     stage: "III" as const,
     attack: 4,
-    health: 16,
-    maxHealth: 16,
+    health,
+    maxHealth: health,
     scheme: 1,
     tough: true,
     attachments: [],

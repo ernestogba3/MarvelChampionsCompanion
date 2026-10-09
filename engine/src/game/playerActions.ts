@@ -6,11 +6,54 @@ import {
   advanceToRhinoStageThree,
 } from "./villainStages";
 import { canRemoveThreatFromMainScheme } from "./sideSchemes";
+import { canAttackVillain } from "./combat";
 
 export function attackVillain(
   state: GameState,
+  playerId: string,
   amount: number,
 ): { state: GameState; events: GameEvent[] } {
+  // Guardia solo bloquea al jugador enganchado con ESE esbirro concreto, no
+  // a los demás jugadores (confirmado contra el RRG v1.7: "while any
+  // minions with this keyword are engaged with A player, THAT player
+  // cannot attack villains"). canAttackVillain ya hace este chequeo exacto;
+  // lo reutilizamos en vez de duplicarlo.
+  if (!canAttackVillain(state, playerId)) {
+    const guardMinion = state.minions.find(
+      (m) => m.guard && m.engagedWith === playerId,
+    )!;
+    return {
+      state,
+      events: [
+        {
+          type: "ATTACK_BLOCKED_BY_GUARD",
+          minionId: guardMinion.id,
+          minionName: guardMinion.name,
+        },
+      ],
+    };
+  }
+
+  // Resistente (Toughness): si el villano tiene un status card Tough en juego,
+  // este ataque no le hace NADA de daño (no se reduce "en N") y el Tough se
+  // descarta. Confirmado contra el RRG v1.7: Rino (III) entra en juego con
+  // esta keyword, así que su primer golpe recibido siempre debe gastarse así.
+  if (state.villain.tough) {
+    return {
+      state: {
+        ...state,
+        villain: { ...state.villain, tough: false },
+      },
+      events: [
+        {
+          type: "STATUS_REMOVED",
+          targetId: "villain",
+          status: "TOUGH",
+        },
+      ],
+    };
+  }
+
   const { state: afterDamage, events } = dealDamageToVillain(state, amount);
 
   if (afterDamage.villain.health <= 0) {

@@ -14,6 +14,12 @@ export interface PlayerState {
   faceDownEncounterCards: string[];
   stunned: boolean;
   upgradesInPlay: string[];
+  // IDs de marvelcdb para la ilustración de cada cara de la identidad
+  // (p.ej. "01001a" héroe / "01001b" alter ego de Spider-Man/Peter Parker).
+  // Opcionales a propósito: partidas guardadas antiguas y jugadores sin ID
+  // introducido simplemente no muestran miniatura, sin romper nada.
+  heroCardId?: string;
+  alterEgoCardId?: string;
 }
 
 export type VillainStage = "I" | "II" | "III";

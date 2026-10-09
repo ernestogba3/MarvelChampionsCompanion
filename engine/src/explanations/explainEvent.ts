@@ -36,6 +36,17 @@ export function explainEvent(event: GameEvent): RuleExplanation {
         nextStep:
           "Si el plan llega a su umbral, los jugadores pierden la partida.",
       };
+
+    case "BOOST_CARD_REVEALED":
+      return {
+        title: "Carta de impulso",
+        description:
+          event.boostValue > 0
+            ? `Rino revela una carta de impulso con valor ${event.boostValue} y la descarta.`
+            : "Rino revela una carta de impulso sin icono (+0) y la descarta.",
+        reason:
+          "Al activarse, el villano revela la carta superior del mazo de encuentro y suma su icono de impulso a su ataque o plan de esta activación. Solo se usa el icono: el resto del texto de la carta se ignora, y la carta se descarta sin ponerse en juego.",
+      };
     case "THREAT_REMOVED":
       return {
         title: "Amenaza retirada",

@@ -8,6 +8,7 @@ import {
     Image,
     Modal,
     Dimensions,
+    Alert,
 } from 'react-native';
 import {
     deserializeGameState,
@@ -100,7 +101,7 @@ function CardThumb({
 
 export default function GameScreen() {
     const [state, setState] = useState<GameState | null>(null);
-    const [damageInput, setDamageInput] = useState('');
+    const [damageInputs, setDamageInputs] = useState<Record<string, string>>({});
     const [minionDamageInputs, setMinionDamageInputs] = useState<Record<string, string>>({});
     const [schemeThwartInputs, setSchemeThwartInputs] = useState<Record<string, string>>({});
     const [encounterPicks, setEncounterPicks] = useState<string[]>([]);
@@ -137,22 +138,35 @@ export default function GameScreen() {
         setState(next);
     }
 
-    async function toggleForm() {
+    async function toggleForm(playerId: string) {
         if (!state) return;
-        const player = state.players[0];
         const next: GameState = {
             ...state,
-            players: [{ ...player, form: player.form === 'HERO' ? 'ALTER_EGO' : 'HERO' }],
+            players: state.players.map((p) =>
+                p.id === playerId
+                    ? { ...p, form: p.form === 'HERO' ? 'ALTER_EGO' : 'HERO' }
+                    : p,
+            ),
         };
         await persist(next);
     }
 
-    async function handleAttack() {
+    async function handleAttack(playerId: string) {
         if (!state) return;
-        const amount = parseInt(damageInput, 10);
+        const amount = parseInt(damageInputs[playerId] ?? '', 10);
         if (!amount || amount <= 0) return;
-        const { state: next } = runAndLog(attackVillain, state, amount);
-        setDamageInput('');
+        const { state: next, events } = runAndLog(attackVillain, state, playerId, amount);
+        const blocked = events.find((e: any) => e.type === 'ATTACK_BLOCKED_BY_GUARD') as
+            | { minionName: string }
+            | undefined;
+        if (blocked) {
+            Alert.alert(
+                'Bloqueado por Guardia',
+                `No puedes atacar a Rino mientras "${blocked.minionName}" esté enfrentado contigo. Derrótalo primero.`,
+            );
+            return;
+        }
+        setDamageInputs((prev) => ({ ...prev, [playerId]: '' }));
         await persist(next);
     }
 
@@ -182,21 +196,40 @@ export default function GameScreen() {
             if (state.phase.step === 'ADD_THREAT') {
                 next = runAndLog(addThreatStep, state).state;
             } else if (state.phase.step === 'VILLAIN_ACTIVATION') {
-                next = runAndLog(resolveVillainActivation, state, state.players[0].id).state;
+                // El villano activa una vez contra CADA jugador, en orden.
+                let acc = state;
+                for (const p of state.players) {
+                    acc = runAndLog(resolveVillainActivation, acc, p.id).state;
+                }
+                next = acc;
             } else if (state.phase.step === 'DEAL_ENCOUNTER_CARDS') {
                 next = runAndLog(dealPendingEncounterCards, state).state;
             } else if (state.phase.step === 'REVEAL_ENCOUNTER_CARDS') {
-                const faceDownCount = state.players[0].faceDownEncounterCards.length;
-                if (faceDownCount > 0 && encounterPicks.length !== faceDownCount) {
-                    return;
+                const revealingPlayer = state.players.find(
+                    (p) => p.faceDownEncounterCards.length > 0,
+                );
+                if (revealingPlayer) {
+                    const faceDown = revealingPlayer.faceDownEncounterCards.length;
+                    if (encounterPicks.length !== faceDown) {
+                        return;
+                    }
+                    const resolved = runAndLog(
+                        revealPendingCardsForPlayer,
+                        state,
+                        revealingPlayer.id,
+                        encounterPicks.length > 0 ? encounterPicks : undefined,
+                    ).state;
+                    setEncounterPicks([]);
+                    const stillPending = resolved.players.some(
+                        (p) => p.faceDownEncounterCards.length > 0,
+                    );
+                    if (stillPending) {
+                        // Queda otro jugador por revelar: se guarda pero NO se avanza de paso.
+                        await persist(resolved);
+                        return;
+                    }
+                    next = resolved;
                 }
-                next = runAndLog(
-                    revealPendingCardsForPlayer,
-                    state,
-                    state.players[0].id,
-                    encounterPicks.length > 0 ? encounterPicks : undefined,
-                ).state;
-                setEncounterPicks([]);
             }
         }
 
@@ -227,7 +260,6 @@ export default function GameScreen() {
         );
     }
 
-    const player = state.players[0];
     const step = describeCurrentStep(state);
     const recent = explainRecentEvents(state, 3);
     const isPlayerPhase = state.phase.name === 'PLAYER_PHASE';
@@ -236,14 +268,28 @@ export default function GameScreen() {
         state.phase.step === 'REVEAL_ENCOUNTER_CARDS';
     const activeKey = currentStepKey(state);
 
-    const displayName = player.form === 'HERO' ? player.heroName : player.alterEgoName;
-    const otherName = player.form === 'HERO' ? player.alterEgoName : player.heroName;
-
     const villainCardId = state.villain.cardId || null;
 
-    const faceDownCount = player.faceDownEncounterCards.length;
-    const encounterPool = isRevealStep
-        ? [...state.encounterDeck, ...player.faceDownEncounterCards]
+    const lastBoostCard = (() => {
+        for (let i = state.eventLog.length - 1; i >= 0; i--) {
+            const e = state.eventLog[i] as any;
+            if (e.type === 'BOOST_CARD_REVEALED') {
+                return { cardId: e.cardId as string, boostValue: e.boostValue as number };
+            }
+        }
+        return null;
+    })();
+
+    // Durante Revelar, se pasa por cada jugador con cartas boca abajo, uno a
+    // la vez, en orden — sin tocar el estado guardado, se deduce de quién le
+    // quedan cartas pendientes.
+    const revealingPlayer = isRevealStep
+        ? state.players.find((p) => p.faceDownEncounterCards.length > 0) ?? null
+        : null;
+    const faceDownCount = revealingPlayer ? revealingPlayer.faceDownEncounterCards.length : 0;
+
+    const encounterPool = isRevealStep && revealingPlayer
+        ? [...state.encounterDeck, ...revealingPlayer.faceDownEncounterCards]
         : [];
     const availablePool = (() => {
         const remaining = [...encounterPool];
@@ -313,26 +359,80 @@ export default function GameScreen() {
                             max={state.villain.maxHealth}
                             color="bg-rojo-acento"
                         />
+                        {lastBoostCard && (
+                            <View className="flex-row items-center gap-2 mt-1">
+                                <CardThumb
+                                    cardId={lastBoostCard.cardId}
+                                    size="sm"
+                                    onPress={() => setModalCardId(lastBoostCard.cardId)}
+                                />
+                                <Text className="font-sans text-gris-pizarra text-xs flex-1">
+                                    Última carta de impulso:{' '}
+                                    {lastBoostCard.boostValue > 0
+                                        ? `+${lastBoostCard.boostValue}`
+                                        : 'sin icono (+0)'}
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 </View>
 
-                {/* HÉROE */}
-                <View className="bg-crema/5 rounded-2xl p-4 gap-2">
-                    <View className="flex-row justify-between items-center">
-                        <Text className="font-sans-bold text-crema text-base">{displayName}</Text>
-                        <Text className="font-sans text-gris-pizarra text-xs">
-                            {player.health} / {player.maxHealth} ·{' '}
-                            {player.form === 'HERO' ? 'Héroe' : 'Alter ego'}
-                        </Text>
-                    </View>
-                    <ProgressBar current={player.health} max={player.maxHealth} color="bg-dorado" />
-                    <Pressable
-                        onPress={toggleForm}
-                        className="border border-crema/20 rounded-lg py-2 items-center mt-1"
-                    >
-                        <Text className="font-sans-semibold text-crema text-sm">Cambiar a {otherName}</Text>
-                    </Pressable>
-                </View>
+                {/* HÉROES: uno por jugador */}
+                {state.players.map((p) => {
+                    const displayName = p.form === 'HERO' ? p.heroName : p.alterEgoName;
+                    const otherName = p.form === 'HERO' ? p.alterEgoName : p.heroName;
+                    const identityCardId = p.form === 'HERO' ? p.heroCardId : p.alterEgoCardId;
+                    return (
+                        <View key={p.id} className="bg-crema/5 rounded-2xl p-4 gap-2">
+                            <View className="flex-row gap-3 items-center">
+                                {identityCardId && (
+                                    <CardThumb
+                                        cardId={identityCardId}
+                                        onPress={() => setModalCardId(identityCardId)}
+                                    />
+                                )}
+                                <View className="flex-1 gap-2">
+                                    <View className="flex-row justify-between items-center">
+                                        <Text className="font-sans-bold text-crema text-base">{displayName}</Text>
+                                        <Text className="font-sans text-gris-pizarra text-xs">
+                                            {p.health} / {p.maxHealth} ·{' '}
+                                            {p.form === 'HERO' ? 'Héroe' : 'Alter ego'}
+                                        </Text>
+                                    </View>
+                                    <ProgressBar current={p.health} max={p.maxHealth} color="bg-dorado" />
+                                </View>
+                            </View>
+                            <Pressable
+                                onPress={() => toggleForm(p.id)}
+                                className="border border-crema/20 rounded-lg py-2 items-center mt-1"
+                            >
+                                <Text className="font-sans-semibold text-crema text-sm">
+                                    Cambiar a {otherName}
+                                </Text>
+                            </Pressable>
+                            {isPlayerPhase && (
+                                <View className="flex-row gap-2 mt-1">
+                                    <TextInput
+                                        className="border border-crema/20 rounded-lg px-3 py-2 text-crema flex-1"
+                                        placeholderTextColor="#6B7280"
+                                        keyboardType="number-pad"
+                                        value={damageInputs[p.id] ?? ''}
+                                        onChangeText={(text) =>
+                                            setDamageInputs((prev) => ({ ...prev, [p.id]: text }))
+                                        }
+                                        placeholder="Daño a Rino"
+                                    />
+                                    <Pressable
+                                        onPress={() => handleAttack(p.id)}
+                                        className="bg-dorado rounded-lg px-5 justify-center"
+                                    >
+                                        <Text className="font-sans-bold text-azul-noche text-sm">Atacar</Text>
+                                    </Pressable>
+                                </View>
+                            )}
+                        </View>
+                    );
+                })}
 
                 {/* PLANES */}
                 {state.schemes.length > 0 && (
@@ -399,77 +499,66 @@ export default function GameScreen() {
                 {state.minions.length > 0 && (
                     <View className="bg-crema/5 rounded-2xl p-4 gap-3">
                         <Text className="font-sans-bold text-crema text-base">Esbirros</Text>
-                        {state.minions.map((minion) => (
-                            <View key={minion.id} className="flex-row gap-3">
-                                <CardThumb cardId={minion.cardId} onPress={() => setModalCardId(minion.cardId)} />
-                                <View className="flex-1 gap-1">
-                                    <View className="flex-row justify-between items-center">
-                                        <Text className="font-sans text-crema text-sm flex-1" numberOfLines={1}>
-                                            {minion.name}
-                                            {minion.guard ? ' · Guardia' : ''}
-                                        </Text>
-                                        <Text className="font-sans text-gris-pizarra text-xs">
-                                            {minion.health}/{minion.maxHealth}
-                                        </Text>
-                                    </View>
-                                    <ProgressBar
-                                        current={minion.health}
-                                        max={minion.maxHealth}
-                                        color="bg-rojo-acento"
-                                    />
-                                    {isPlayerPhase && (
-                                        <View className="flex-row gap-2 mt-1">
-                                            <TextInput
-                                                className="border border-crema/20 rounded-lg px-3 py-1.5 text-crema flex-1"
-                                                placeholderTextColor="#6B7280"
-                                                keyboardType="number-pad"
-                                                value={minionDamageInputs[minion.id] ?? ''}
-                                                onChangeText={(text) =>
-                                                    setMinionDamageInputs((prev) => ({ ...prev, [minion.id]: text }))
-                                                }
-                                                placeholder="Daño"
-                                            />
-                                            <Pressable
-                                                onPress={() => handleAttackMinion(minion.id)}
-                                                className="bg-dorado rounded-lg px-4 justify-center"
-                                            >
-                                                <Text className="font-sans-bold text-azul-noche text-sm">Aplicar</Text>
-                                            </Pressable>
+                        {state.minions.map((minion) => {
+                            const engagedPlayer = state.players.find((p) => p.id === minion.engagedWith);
+                            return (
+                                <View key={minion.id} className="flex-row gap-3">
+                                    <CardThumb cardId={minion.cardId} onPress={() => setModalCardId(minion.cardId)} />
+                                    <View className="flex-1 gap-1">
+                                        <View className="flex-row justify-between items-center">
+                                            <Text className="font-sans text-crema text-sm flex-1" numberOfLines={1}>
+                                                {minion.name}
+                                                {minion.guard ? ' · Guardia' : ''}
+                                            </Text>
+                                            <Text className="font-sans text-gris-pizarra text-xs">
+                                                {minion.health}/{minion.maxHealth}
+                                            </Text>
                                         </View>
-                                    )}
+                                        {engagedPlayer && (
+                                            <Text className="font-sans text-gris-pizarra text-[10px]">
+                                                Enganchado con {engagedPlayer.heroName}
+                                            </Text>
+                                        )}
+                                        <ProgressBar
+                                            current={minion.health}
+                                            max={minion.maxHealth}
+                                            color="bg-rojo-acento"
+                                        />
+                                        {isPlayerPhase && (
+                                            <View className="flex-row gap-2 mt-1">
+                                                <TextInput
+                                                    className="border border-crema/20 rounded-lg px-3 py-1.5 text-crema flex-1"
+                                                    placeholderTextColor="#6B7280"
+                                                    keyboardType="number-pad"
+                                                    value={minionDamageInputs[minion.id] ?? ''}
+                                                    onChangeText={(text) =>
+                                                        setMinionDamageInputs((prev) => ({ ...prev, [minion.id]: text }))
+                                                    }
+                                                    placeholder="Daño"
+                                                />
+                                                <Pressable
+                                                    onPress={() => handleAttackMinion(minion.id)}
+                                                    className="bg-dorado rounded-lg px-4 justify-center"
+                                                >
+                                                    <Text className="font-sans-bold text-azul-noche text-sm">Aplicar</Text>
+                                                </Pressable>
+                                            </View>
+                                        )}
+                                    </View>
                                 </View>
-                            </View>
-                        ))}
-                    </View>
-                )}
-
-                {isPlayerPhase && (
-                    <View className="bg-crema/5 rounded-2xl p-4 gap-2">
-                        <Text className="font-sans-bold text-crema text-base">Atacar a Rino</Text>
-                        <View className="flex-row gap-2">
-                            <TextInput
-                                className="border border-crema/20 rounded-lg px-3 py-2 text-crema flex-1"
-                                placeholderTextColor="#6B7280"
-                                keyboardType="number-pad"
-                                value={damageInput}
-                                onChangeText={setDamageInput}
-                                placeholder="Daño"
-                            />
-                            <Pressable
-                                onPress={handleAttack}
-                                className="bg-dorado rounded-lg px-5 justify-center"
-                            >
-                                <Text className="font-sans-bold text-azul-noche text-sm">Aplicar</Text>
-                            </Pressable>
-                        </View>
+                            );
+                        })}
                     </View>
                 )}
 
                 {/* PICKER DE CARTA DE ENCUENTRO */}
-                {isRevealStep && faceDownCount > 0 && (
+                {isRevealStep && revealingPlayer && faceDownCount > 0 && (
                     <View className="bg-crema/5 rounded-2xl p-4 gap-3">
                         <Text className="font-sans-bold text-crema text-base">
-                            ¿Qué carta has robado? ({encounterPicks.length}/{faceDownCount})
+                            {revealingPlayer.form === 'HERO'
+                                ? revealingPlayer.heroName
+                                : revealingPlayer.alterEgoName}
+                            : ¿qué carta has robado? ({encounterPicks.length}/{faceDownCount})
                         </Text>
                         <Text className="font-sans text-gris-pizarra text-xs">
                             Mira la carta que tienes físicamente y selecciónala en la lista.

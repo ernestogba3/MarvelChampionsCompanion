@@ -8,6 +8,7 @@ export type GameEvent =
   | { type: "HEALTH_HEALED"; targetId: string; amount: number; source: string }
   | { type: "VILLAIN_ATTACKED"; playerId: string; amount: number }
   | { type: "VILLAIN_SCHEMED"; schemeId: string; amount: number }
+  | { type: "BOOST_CARD_REVEALED"; cardId: string; boostValue: number }
   | { type: "ENCOUNTER_CARD_DEALT"; playerId: string }
   | { type: "ENCOUNTER_DECK_RESHUFFLED"; schemeId: string }
   | { type: "VILLAIN_STAGE_CHANGED"; from: VillainStage; to: VillainStage }
@@ -17,4 +18,5 @@ export type GameEvent =
   | { type: "CARD_GAINED_SURGE"; cardName: string }
   | { type: "UPGRADE_DISCARDED"; playerId: string; upgradeId: string }
   | { type: "DAMAGE_REDIRECTED"; toAttachmentId: string; amount: number }
-  | { type: "ATTACHMENT_DISCARDED"; attachmentId: string };
+  | { type: "ATTACHMENT_DISCARDED"; attachmentId: string }
+  | { type: "ATTACK_BLOCKED_BY_GUARD"; minionId: string; minionName: string };

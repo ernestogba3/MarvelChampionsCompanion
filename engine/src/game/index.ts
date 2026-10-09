@@ -1,5 +1,6 @@
 export const ping = () => "engine ok";
-export { createSpiderManVsRhinoGame } from "./createGame";
+export { createSpiderManVsRhinoGame, createRhinoGame } from "./createGame";
+export type { PlayerSetup } from "./createGame";
 export {
   serializeGameState,
   deserializeGameState,
@@ -21,5 +22,6 @@ export {
   checkGameOutcome,
 } from "./playerActions";
 export type { GameOutcome } from "./playerActions";
+export { canAttackVillain } from "./combat";
 export { CARD_CATALOG, getCardDefinition } from "../data/cards";
 export type { CardDefinition, CardType, EncounterSet } from "../data/cards";

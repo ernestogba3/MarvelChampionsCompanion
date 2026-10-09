@@ -1,9 +1,11 @@
 import { Text, View, Pressable, ScrollView, Alert, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { clearGame } from '../../storage/gameStorage';
 
 const RULES_URL = 'https://rulespal.com/game/marvel-champions-the-card-game-rulebook';
-const APP_VERSION = '1.0.0';
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 export default function MoreScreen() {
     const router = useRouter();
@@ -33,22 +35,34 @@ export default function MoreScreen() {
     return (
         <ScrollView
             className="flex-1 bg-azul-noche"
-            contentContainerStyle={{ padding: 20, paddingTop: 56, gap: 20 }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 56, paddingBottom: 48, gap: 20 }}
         >
-            <Text className="font-display text-crema text-3xl">Más</Text>
+            <View>
+                <Text className="font-sans-semibold text-dorado text-xs uppercase tracking-widest">
+                    Ajustes y recursos
+                </Text>
+                <Text className="font-display text-crema text-3xl mt-1">Más</Text>
+            </View>
 
             <View className="gap-2">
                 <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
                     Partida
                 </Text>
                 <View className="bg-crema/5 rounded-2xl overflow-hidden">
-                    <Pressable onPress={handleReset} className="p-4">
-                        <Text className="font-sans-bold text-rojo-acento text-base">
-                            Reiniciar partida
-                        </Text>
-                        <Text className="font-sans text-gris-pizarra text-xs mt-1">
-                            Borra la partida guardada y vuelve al inicio.
-                        </Text>
+                    <Pressable
+                        onPress={handleReset}
+                        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+                        className="p-4 flex-row items-center gap-3"
+                    >
+                        <View className="flex-1">
+                            <Text className="font-sans-bold text-rojo-acento text-base">
+                                Reiniciar partida
+                            </Text>
+                            <Text className="font-sans text-gris-pizarra text-xs mt-1">
+                                Borra la partida guardada y vuelve al inicio.
+                            </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color="#D4A24C" />
                     </Pressable>
                 </View>
             </View>
@@ -58,13 +72,20 @@ export default function MoreScreen() {
                     Recursos
                 </Text>
                 <View className="bg-crema/5 rounded-2xl overflow-hidden">
-                    <Pressable onPress={handleOpenRules} className="p-4">
-                        <Text className="font-sans-bold text-crema text-base">
-                            Reglas oficiales
-                        </Text>
-                        <Text className="font-sans text-gris-pizarra text-xs mt-1">
-                            Abrir el reglamento de Marvel Champions.
-                        </Text>
+                    <Pressable
+                        onPress={handleOpenRules}
+                        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+                        className="p-4 flex-row items-center gap-3"
+                    >
+                        <View className="flex-1">
+                            <Text className="font-sans-bold text-crema text-base">
+                                Reglas oficiales
+                            </Text>
+                            <Text className="font-sans text-gris-pizarra text-xs mt-1">
+                                Abrir el reglamento de Marvel Champions.
+                            </Text>
+                        </View>
+                        <Ionicons name="open-outline" size={18} color="#D4A24C" />
                     </Pressable>
                 </View>
             </View>

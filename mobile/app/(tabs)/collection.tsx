@@ -28,13 +28,13 @@ export default function CollectionScreen() {
     return (
         <ScrollView
             className="flex-1 bg-azul-noche"
-            contentContainerStyle={{ padding: 20, paddingTop: 56, gap: 20 }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 56, paddingBottom: 48, gap: 20 }}
         >
             <View>
-                <Text className="font-display text-crema text-3xl">Colección</Text>
-                <Text className="font-sans-semibold text-dorado text-xs uppercase tracking-widest mt-1">
+                <Text className="font-sans-semibold text-dorado text-xs uppercase tracking-widest">
                     Próximamente
                 </Text>
+                <Text className="font-display text-crema text-3xl mt-1">Colección</Text>
             </View>
 
             <View className="bg-crema/5 rounded-2xl p-5 gap-2">
