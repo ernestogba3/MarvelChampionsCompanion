@@ -6,6 +6,7 @@ import {
   loadGame,
   saveGame,
   initDatabase,
+  loadDecks,
 } from '../storage/gameStorage';
 import { getHeroCatalog, type HeroCatalogEntry } from '../services/heroCatalog';
 import {
@@ -13,7 +14,7 @@ import {
   serializeGameState,
   deserializeGameState,
 } from 'engine';
-import type { GameState, PlayerSetup } from 'engine';
+import type { GameState, PlayerSetup, DeckDefinition } from 'engine';
 
 type Difficulty = 'STANDARD' | 'EXPERT';
 
@@ -31,6 +32,16 @@ const DEFAULT_SLOTS: PlayerSetup[] = [
   { id: 'player-4', heroName: '', alterEgoName: '', health: 10, heroCardId: '', alterEgoCardId: '' },
 ];
 
+// Etiquetas de aspecto para el selector de mazo. Las mismas que usa la
+// pantalla Colección — misma clave (código de facción de marvelcdb), misma
+// traducción.
+const ASPECT_LABELS: Record<string, string> = {
+  aggression: 'Agresión',
+  justice: 'Justicia',
+  leadership: 'Liderazgo',
+  protection: 'Protección',
+};
+
 type CatalogStatus = 'loading' | 'ready' | 'error';
 
 export default function IndexScreen() {
@@ -45,6 +56,10 @@ export default function IndexScreen() {
   const [catalogStatus, setCatalogStatus] = useState<CatalogStatus>('loading');
   const [catalogFetchedAt, setCatalogFetchedAt] = useState<string | null>(null);
   const [queries, setQueries] = useState<string[]>(['', '', '', '']);
+  // Mazos guardados por el jugador (ver storage/gameStorage.ts → tabla
+  // "decks"). Se refrescan al enfocar la pantalla, para que los mazos
+  // creados en Colección aparezcan al volver aquí.
+  const [decks, setDecks] = useState<DeckDefinition[]>([]);
 
   async function refresh() {
     const saved = await loadGame();
@@ -72,11 +87,21 @@ export default function IndexScreen() {
     }
   }
 
+  async function reloadDecks() {
+    try {
+      const d = await loadDecks();
+      setDecks(d);
+    } catch {
+      setDecks([]);
+    }
+  }
+
   useEffect(() => {
     async function init() {
       await initDatabase();
       await refresh();
       await loadHeroes();
+      await reloadDecks();
       setReady(true);
     }
     init();
@@ -86,6 +111,7 @@ export default function IndexScreen() {
     useCallback(() => {
       if (ready) {
         refresh();
+        reloadDecks();
       }
     }, [ready]),
   );
@@ -115,20 +141,62 @@ export default function IndexScreen() {
 
   function selectHero(index: number, hero: HeroCatalogEntry) {
     setSlots((prev) =>
-      prev.map((s, i) =>
-        i === index
-          ? {
+      prev.map((s, i) => {
+        if (i !== index) return s;
+        // Si el jugador tenía un mazo elegido para OTRO héroe, lo soltamos
+        // (el constructor de mazos exige coincidencia héroe↔mazo). Si el
+        // mazo era para este mismo héroe, lo conservamos.
+        const sameHero = s.heroCardId === hero.heroCardId;
+        return {
+          ...s,
+          heroName: hero.heroName,
+          alterEgoName: hero.alterEgoName,
+          heroCardId: hero.heroCardId,
+          alterEgoCardId: hero.alterEgoCardId,
+          health: hero.health,
+          deckId: sameHero ? s.deckId : undefined,
+        };
+      }),
+    );
+    updateQuery(index, hero.heroName);
+  }
+
+  function selectDeck(index: number, deck: DeckDefinition) {
+    const hero = catalog.find((h) => h.heroCardId === deck.heroCode);
+    setSlots((prev) =>
+      prev.map((s, i) => {
+        if (i !== index) return s;
+        if (hero) {
+          // Elegir mazo también fija el héroe: la lista de mazos ya está
+          // filtrada por héroe más abajo, pero esto cubre también el caso
+          // "aún no elegí héroe, elijo mazo directamente".
+          return {
             ...s,
+            deckId: deck.id,
             heroName: hero.heroName,
             alterEgoName: hero.alterEgoName,
             heroCardId: hero.heroCardId,
             alterEgoCardId: hero.alterEgoCardId,
             health: hero.health,
-          }
-          : s,
-      ),
+          };
+        }
+        // Sin catálogo (offline) nos quedamos con el ID de héroe del mazo
+        // como mínimo, para que la miniatura y la validación funcionen al
+        // volver la conexión.
+        return {
+          ...s,
+          deckId: deck.id,
+          heroCardId: deck.heroCode,
+        };
+      }),
     );
-    updateQuery(index, hero.heroName);
+    if (hero) updateQuery(index, hero.heroName);
+  }
+
+  function clearDeck(index: number) {
+    setSlots((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, deckId: undefined } : s)),
+    );
   }
 
   async function startNew() {
@@ -138,6 +206,7 @@ export default function IndexScreen() {
       alterEgoName: s.alterEgoName.trim() || s.heroName.trim(),
       heroCardId: s.heroCardId?.trim() || undefined,
       alterEgoCardId: s.alterEgoCardId?.trim() || undefined,
+      deckId: s.deckId || undefined,
     }));
     const missing = activeSlots.find((s) => !s.heroName);
     if (missing) {
@@ -279,6 +348,13 @@ export default function IndexScreen() {
                       )
                       .slice(0, 5)
                     : [];
+                // Mazos elegibles para este slot: si ya hay héroe, solo
+                // los suyos (coincidencia por heroCode); si no hay héroe
+                // elegido, los enseñamos todos (elegir mazo también fija
+                // el héroe, ver selectDeck).
+                const decksForSlot = slot.heroCardId
+                  ? decks.filter((d) => d.heroCode === slot.heroCardId)
+                  : decks;
                 return (
                   <View key={slot.id} className="bg-crema/5 rounded-2xl p-3 gap-2">
                     <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
@@ -337,6 +413,54 @@ export default function IndexScreen() {
                         />
                       </>
                     )}
+
+                    <View className="gap-1 mt-1">
+                      <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
+                        Mazo (opcional)
+                      </Text>
+                      {decks.length === 0 ? (
+                        <Text className="font-sans text-gris-pizarra text-xs">
+                          Todavía no tienes mazos guardados. Créalos en la pestaña
+                          Colección.
+                        </Text>
+                      ) : decksForSlot.length === 0 ? (
+                        <Text className="font-sans text-gris-pizarra text-xs">
+                          No tienes ningún mazo para este héroe. Crea uno en la pestaña
+                          Colección.
+                        </Text>
+                      ) : (
+                        <View className="gap-1">
+                          {decksForSlot.map((d) => {
+                            const selected = slot.deckId === d.id;
+                            return (
+                              <Pressable
+                                key={d.id}
+                                onPress={() =>
+                                  selected ? clearDeck(index) : selectDeck(index, d)
+                                }
+                                className="rounded-lg px-3 py-2"
+                                style={{
+                                  backgroundColor: selected
+                                    ? 'rgba(212,162,76,0.2)'
+                                    : 'rgba(255,255,255,0.05)',
+                                  borderWidth: 1,
+                                  borderColor: selected ? '#D4A24C' : 'transparent',
+                                }}
+                              >
+                                <Text className="font-sans-semibold text-crema text-sm">
+                                  {d.name}
+                                </Text>
+                                <Text className="font-sans text-gris-pizarra text-xs">
+                                  {d.aspect
+                                    ? ASPECT_LABELS[d.aspect] ?? d.aspect
+                                    : 'Sin aspecto'}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      )}
+                    </View>
 
                     <TextInput
                       className="border border-crema/20 rounded-lg px-3 py-2 text-crema"

@@ -41,6 +41,12 @@ export interface PlayerSetup {
   // se muestra miniatura para ese jugador.
   heroCardId?: string;
   alterEgoCardId?: string;
+  // ID del mazo guardado que este jugador trae a la partida (ver
+  // mobile/storage/gameStorage.ts → tabla "decks"). Opcional: el motor NO
+  // simula todavía la biblioteca del jugador, pero el ID viaja con el
+  // PlayerState para que la app companion sepa qué cartas tiene cada
+  // jugador. Partidas iniciadas sin elegir mazo simplemente no lo traen.
+  deckId?: string;
 }
 
 function buildPlayers(setups: PlayerSetup[]): PlayerState[] {
@@ -60,6 +66,7 @@ function buildPlayers(setups: PlayerSetup[]): PlayerState[] {
     ...(setup.alterEgoCardId !== undefined && {
       alterEgoCardId: setup.alterEgoCardId,
     }),
+    ...(setup.deckId !== undefined && { deckId: setup.deckId }),
   }));
 }
 

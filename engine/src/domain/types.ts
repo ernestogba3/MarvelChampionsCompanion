@@ -20,6 +20,13 @@ export interface PlayerState {
   // introducido simplemente no muestran miniatura, sin romper nada.
   heroCardId?: string;
   alterEgoCardId?: string;
+  // ID del mazo guardado que este jugador trae a la partida (ver
+  // mobile/storage/gameStorage.ts → tabla "decks"). Opcional: el motor NO
+  // simula todavía la biblioteca del jugador, pero el ID viaja con el
+  // GameState para que la app companion sepa qué cartas tiene cada jugador
+  // (y para cuando el motor empiece a modelarlo). Partidas guardadas antes
+  // de esta sesión simplemente no lo traen y siguen cargándose igual.
+  deckId?: string;
 }
 
 export type VillainStage = "I" | "II" | "III";

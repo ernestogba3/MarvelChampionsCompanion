@@ -10,6 +10,7 @@ import {
     Dimensions,
     Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import {
     deserializeGameState,
     serializeGameState,
@@ -100,6 +101,7 @@ function CardThumb({
 }
 
 export default function GameScreen() {
+    const router = useRouter();
     const [state, setState] = useState<GameState | null>(null);
     const [damageInputs, setDamageInputs] = useState<Record<string, string>>({});
     const [minionDamageInputs, setMinionDamageInputs] = useState<Record<string, string>>({});
@@ -382,6 +384,7 @@ export default function GameScreen() {
                     const displayName = p.form === 'HERO' ? p.heroName : p.alterEgoName;
                     const otherName = p.form === 'HERO' ? p.alterEgoName : p.heroName;
                     const identityCardId = p.form === 'HERO' ? p.heroCardId : p.alterEgoCardId;
+                    const hasDeck = !!p.deckId;
                     return (
                         <View key={p.id} className="bg-crema/5 rounded-2xl p-4 gap-2">
                             <View className="flex-row gap-3 items-center">
@@ -402,14 +405,28 @@ export default function GameScreen() {
                                     <ProgressBar current={p.health} max={p.maxHealth} color="bg-dorado" />
                                 </View>
                             </View>
-                            <Pressable
-                                onPress={() => toggleForm(p.id)}
-                                className="border border-crema/20 rounded-lg py-2 items-center mt-1"
-                            >
-                                <Text className="font-sans-semibold text-crema text-sm">
-                                    Cambiar a {otherName}
-                                </Text>
-                            </Pressable>
+                            <View className="flex-row gap-2 mt-1">
+                                <Pressable
+                                    onPress={() => toggleForm(p.id)}
+                                    className="border border-crema/20 rounded-lg py-2 items-center flex-1"
+                                >
+                                    <Text className="font-sans-semibold text-crema text-sm">
+                                        Cambiar a {otherName}
+                                    </Text>
+                                </Pressable>
+                                <Pressable
+                                    onPress={() => {
+                                        if (p.deckId) router.push(`/mazo-vista/${p.deckId}`);
+                                    }}
+                                    disabled={!hasDeck}
+                                    className="border border-crema/20 rounded-lg py-2 items-center flex-1"
+                                    style={{ opacity: hasDeck ? 1 : 0.4 }}
+                                >
+                                    <Text className="font-sans-semibold text-crema text-sm">
+                                        {hasDeck ? 'Ver mazo' : 'Sin mazo'}
+                                    </Text>
+                                </Pressable>
+                            </View>
                             {isPlayerPhase && (
                                 <View className="flex-row gap-2 mt-1">
                                     <TextInput
