@@ -5,7 +5,7 @@ export type CardType =
   | "MINION"
   | "TREACHERY"
   | "ATTACHMENT";
-export type EncounterSet = "RHINO" | "STANDARD";
+export type EncounterSet = "RHINO" | "KLAW" | "STANDARD";
 export interface CardDefinition {
   id: string;
   nameEn: string;
@@ -168,6 +168,161 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     set: "RHINO",
     startingThreat: 2,
     boost: 2,
+  },
+  // -------------------------------------------------------------------------
+  // Set de KLAW (Core Set, 01113–01127). Datos verificados contra marvelcdb
+  // (es.marvelcdb.com / marvelcdb.com) en 2026-10. Los PG de los estadios del
+  // villano son por jugador (el motor los multiplica ×nº de jugadores).
+  // -------------------------------------------------------------------------
+  "01113": {
+    id: "01113",
+    nameEn: "Klaw (I)",
+    nameEs: "Klaw (I)",
+    type: "VILLAIN",
+    set: "KLAW",
+    traits: ["Masters of Evil"],
+    attack: 0,
+    scheme: 2,
+    health: 12,
+  },
+  "01114": {
+    id: "01114",
+    nameEn: "Klaw (II)",
+    nameEs: "Klaw (II)",
+    type: "VILLAIN",
+    set: "KLAW",
+    traits: ["Masters of Evil"],
+    attack: 1,
+    scheme: 2,
+    health: 18,
+  },
+  "01115": {
+    id: "01115",
+    nameEn: "Klaw (III)",
+    nameEs: "Klaw (III)",
+    type: "VILLAIN",
+    set: "KLAW",
+    traits: ["Masters of Evil"],
+    attack: 2,
+    scheme: 3,
+    health: 22,
+  },
+  "01116": {
+    id: "01116",
+    nameEn: "Underground Distribution",
+    nameEs: "Distribución clandestina",
+    type: "MAIN_SCHEME",
+    set: "KLAW",
+    startingThreat: 0,
+    escalationThreat: 1,
+    threatToComplete: 6,
+  },
+  "01117": {
+    id: "01117",
+    nameEn: "Secret Rendezvous",
+    nameEs: "Reunión secreta",
+    type: "MAIN_SCHEME",
+    set: "KLAW",
+    startingThreat: 0,
+    escalationThreat: 1,
+    threatToComplete: 8,
+  },
+  "01118": {
+    id: "01118",
+    nameEn: "Sonic Converter",
+    nameEs: "Transformador sónico",
+    type: "ATTACHMENT",
+    set: "KLAW",
+    traits: ["Weapon"],
+    attack: 1,
+    boost: 3,
+  },
+  "01119": {
+    id: "01119",
+    nameEn: "Solid-Sound Body",
+    nameEs: "Cuerpo de sonido sólido",
+    type: "ATTACHMENT",
+    set: "KLAW",
+    traits: ["Alteration"],
+    boost: 3,
+  },
+  "01120": {
+    id: "01120",
+    nameEn: "Armored Guard",
+    nameEs: "Guardia acorazado",
+    type: "MINION",
+    set: "KLAW",
+    traits: ["Mercenary"],
+    attack: 1,
+    scheme: 0,
+    health: 3,
+    boost: 1,
+  },
+  "01121": {
+    id: "01121",
+    nameEn: "Weapons Runner",
+    nameEs: "Traficante de armas",
+    type: "MINION",
+    set: "KLAW",
+    traits: ["Mercenary"],
+    attack: 1,
+    scheme: 1,
+    health: 2,
+    // Oleada + icono de aumento "estrella" (efecto especial, no numérico):
+    // su aportación numérica al aumento es 0; el efecto lo guía la app.
+    boost: 0,
+  },
+  "01122": {
+    id: "01122",
+    nameEn: "Klaw's Vengeance",
+    nameEs: "La venganza de Klaw",
+    type: "TREACHERY",
+    set: "KLAW",
+    boost: 1,
+  },
+  "01123": {
+    id: "01123",
+    nameEn: "Sonic Boom",
+    nameEs: "Estallido sónico",
+    type: "TREACHERY",
+    set: "KLAW",
+    // Icono de aumento "estrella" (efecto especial): aportación numérica 0.
+    boost: 0,
+  },
+  "01124": {
+    id: "01124",
+    nameEn: "Sound Manipulation",
+    nameEs: "Manipulación del sonido",
+    type: "TREACHERY",
+    set: "KLAW",
+    boost: 2,
+  },
+  "01125": {
+    id: "01125",
+    nameEn: "Defense Network",
+    nameEs: "Red de defensa",
+    type: "SIDE_SCHEME",
+    set: "KLAW",
+    startingThreat: 2,
+    boost: 2,
+  },
+  "01126": {
+    id: "01126",
+    nameEn: "Illegal Arms Factory",
+    nameEs: "Fábrica de armamento ilegal",
+    type: "SIDE_SCHEME",
+    set: "KLAW",
+    startingThreat: 3,
+    boost: 2,
+  },
+  "01127": {
+    id: "01127",
+    nameEn: 'The "Immortal" Klaw',
+    nameEs: 'Klaw "el inmortal"',
+    type: "SIDE_SCHEME",
+    set: "KLAW",
+    startingThreat: 3,
+    boost: 0,
   },
   "01186": {
     id: "01186",

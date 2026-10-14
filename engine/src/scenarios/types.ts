@@ -77,4 +77,20 @@ export interface ScenarioDefinition {
   stages: VillainStageDefinition[];
   progression: Record<Difficulty, StageProgression>;
   encounterDeck: string[];
+  /**
+   * Cuántas cartas de aumento (boost) roba el villano en CADA activación.
+   * Casi todos los villanos roban 1; Klaw roba 2 (su Interrupción obligada:
+   * "cuando Klaw ataque, dale 1 carta de aumento adicional"). villainActivation
+   * lee este valor; por defecto 1 si el escenario no se encuentra.
+   */
+  boostCardsPerActivation: number;
+  /**
+   * Si completar el plan principal MODELADO por el motor supone la derrota.
+   * true en planes de una sola etapa (Rino). false en planes de varias etapas
+   * (Klaw: la etapa 1 "Distribución clandestina" no pierde al completarse,
+   * sino que avanza a "Reunión secreta"; la app guía ese avance y la 2ª etapa
+   * se gestiona manualmente). Evita que checkGameOutcome declare una derrota
+   * prematura. Por defecto true si el escenario no se encuentra.
+   */
+  mainSchemeCompletionLoses: boolean;
 }

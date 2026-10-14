@@ -1,5 +1,6 @@
 import type { ScenarioDefinition } from "./types";
 import { RHINO_SCENARIO } from "./rhino";
+import { KLAW_SCENARIO } from "./klaw";
 
 export type {
   ScenarioDefinition,
@@ -13,6 +14,7 @@ export type {
 // crear su archivo de datos (p.ej. scenarios/klaw.ts) e incluirlo aquí.
 const SCENARIOS: Record<string, ScenarioDefinition> = {
   [RHINO_SCENARIO.id]: RHINO_SCENARIO,
+  [KLAW_SCENARIO.id]: KLAW_SCENARIO,
 };
 
 /** Busca un escenario por su id (la clave estable: "rhino", "klaw", …). */

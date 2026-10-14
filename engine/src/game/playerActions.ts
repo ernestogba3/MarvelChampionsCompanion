@@ -79,9 +79,20 @@ export function attackVillain(
 export type GameOutcome = "ONGOING" | "WIN" | "LOSS";
 
 export function checkGameOutcome(state: GameState): GameOutcome {
+  const scenario = getScenarioByVillainName(state.villain.name);
   const mainScheme = state.schemes.find((s) => s.isMain);
 
-  if (mainScheme && mainScheme.threat >= mainScheme.threatToComplete) {
+  // Completar el plan principal solo es derrota si el escenario lo indica. En
+  // planes de una sola etapa (Rino) sí; en planes de varias etapas (Klaw) la
+  // etapa 1 avanza a la 2 en vez de perder, así que no disparamos derrota aquí
+  // (la 2ª etapa se gestiona manualmente). Sin escenario registrado, se
+  // mantiene el comportamiento original (completar = derrota).
+  const mainSchemeCompletionLoses = scenario?.mainSchemeCompletionLoses ?? true;
+  if (
+    mainSchemeCompletionLoses &&
+    mainScheme &&
+    mainScheme.threat >= mainScheme.threatToComplete
+  ) {
     // TODO: TC-014 — verificar el momento exacto en que se comprueba esto contra el reglamento físico
     return "LOSS";
   }
@@ -89,7 +100,6 @@ export function checkGameOutcome(state: GameState): GameOutcome {
   // El estadio final depende del escenario y la dificultad. Si por lo que sea
   // no hay escenario registrado para este villano, caemos al comportamiento
   // original (Experto → III, Estándar → II) para no cambiar nada.
-  const scenario = getScenarioByVillainName(state.villain.name);
   const finalStage =
     scenario !== undefined
       ? scenario.progression[state.difficulty].final
