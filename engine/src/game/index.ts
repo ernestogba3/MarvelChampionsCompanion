@@ -41,3 +41,16 @@ export type {
   MissingCopies,
   DeckValidation,
 } from "../deck/deckRules";
+// --- Biblioteca simulada del jugador ---
+export {
+  initPlayerLibrary,
+  drawCards,
+  drawToHandSize,
+  playCardFromHand,
+  discardCardFromHand,
+  expandDeckCards,
+  hasSimulatedLibrary,
+  noShuffle,
+  DEFAULT_HAND_SIZE,
+} from "./playerLibrary";
+export type { Shuffle } from "./playerLibrary";

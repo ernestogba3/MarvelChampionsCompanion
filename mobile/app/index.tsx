@@ -7,16 +7,33 @@ import {
   saveGame,
   initDatabase,
   loadDecks,
+  loadDeck,
 } from '../storage/gameStorage';
 import { getHeroCatalog, type HeroCatalogEntry } from '../services/heroCatalog';
 import {
   createRhinoGame,
   serializeGameState,
   deserializeGameState,
+  initPlayerLibrary,
 } from 'engine';
 import type { GameState, PlayerSetup, DeckDefinition } from 'engine';
 
 type Difficulty = 'STANDARD' | 'EXPERT';
+
+// Barajado real (Fisher-Yates) para la biblioteca del jugador. El motor NO
+// baraja por su cuenta —para que sus tests sean deterministas— así que la app
+// le inyecta este barajador aleatorio al iniciar la partida. Firma compatible
+// con el tipo Shuffle de engine: (readonly string[]) => string[].
+function shuffleDeck(cards: readonly string[]): string[] {
+  const out = [...cards];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = out[i];
+    out[i] = out[j];
+    out[j] = tmp;
+  }
+  return out;
+}
 
 const DEFAULT_SLOTS: PlayerSetup[] = [
   {
@@ -216,7 +233,19 @@ export default function IndexScreen() {
       );
       return;
     }
-    const state = createRhinoGame(activeSlots, difficulty);
+    let state = createRhinoGame(activeSlots, difficulty);
+    // Para cada jugador que trae mazo: cargarlo, barajarlo e inicializar su
+    // biblioteca (mano inicial + biblioteca). Los jugadores sin mazo quedan
+    // sin biblioteca simulada y el motor simplemente no les roba cartas.
+    for (const slot of activeSlots) {
+      if (!slot.deckId) continue;
+      const deck = await loadDeck(slot.deckId);
+      if (!deck) continue;
+      const result = initPlayerLibrary(state, slot.id, deck.cards, {
+        shuffle: shuffleDeck,
+      });
+      state = result.state;
+    }
     await saveGame(serializeGameState(state));
     router.push('/game');
   }

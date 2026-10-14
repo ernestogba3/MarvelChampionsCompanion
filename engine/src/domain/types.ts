@@ -27,6 +27,13 @@ export interface PlayerState {
   // (y para cuando el motor empiece a modelarlo). Partidas guardadas antes
   // de esta sesión simplemente no lo traen y siguen cargándose igual.
   deckId?: string;
+  // Biblioteca simulada del jugador. undefined = jugador sin mazo asignado
+  // (partidas antiguas o partidas iniciadas sin elegir mazo); la app ignora
+  // el robo para ese jugador en lugar de romper. Al iniciar la partida con
+  // mazo, initPlayerLibrary() baraja las cartas y las coloca aquí.
+  library?: string[]; // IDs de carta ordenados (índice 0 = cima)
+  hand?: string[]; // cartas actualmente en mano
+  discardPile?: string[]; // pila de descarte (visible, boca arriba)
 }
 
 export type VillainStage = "I" | "II" | "III";

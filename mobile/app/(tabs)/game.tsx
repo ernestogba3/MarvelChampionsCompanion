@@ -27,9 +27,26 @@ import {
     explainRecentEvents,
     runAndLog,
     getCardDefinition,
+    drawCards,
+    playCardFromHand,
+    discardCardFromHand,
 } from 'engine';
 import type { GameState } from 'engine';
 import { loadGame, saveGame } from '../../storage/gameStorage';
+
+// Barajado real (Fisher-Yates) para rebarajar el descarte si la biblioteca se
+// agota durante un robo manual. Mismo criterio que index.tsx: el motor es
+// determinista y la app le inyecta la aleatoriedad.
+function shuffleDeck(cards: readonly string[]): string[] {
+    const out = [...cards];
+    for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = out[i];
+        out[i] = out[j];
+        out[j] = tmp;
+    }
+    return out;
+}
 
 const STEPS = [
     { key: 'PLAYER_PHASE', label: 'Jugador' },
@@ -190,6 +207,26 @@ export default function GameScreen() {
         await persist(next);
     }
 
+    async function handleDraw(playerId: string) {
+        if (!state) return;
+        const { state: next } = runAndLog(drawCards, state, playerId, 1, {
+            shuffle: shuffleDeck,
+        });
+        await persist(next);
+    }
+
+    async function handlePlayCard(playerId: string, cardCode: string) {
+        if (!state) return;
+        const { state: next } = runAndLog(playCardFromHand, state, playerId, cardCode);
+        await persist(next);
+    }
+
+    async function handleDiscardCard(playerId: string, cardCode: string) {
+        if (!state) return;
+        const { state: next } = runAndLog(discardCardFromHand, state, playerId, cardCode);
+        await persist(next);
+    }
+
     async function handleConfirm() {
         if (!state) return;
         let next = state;
@@ -235,7 +272,10 @@ export default function GameScreen() {
             }
         }
 
-        next = advanceToNextStep(next);
+        // Pasamos el barajador real: si al robar hasta la mano al final de la
+        // fase del jugador alguna biblioteca se agota, su descarte se rebaraja
+        // de forma aleatoria (no determinista).
+        next = advanceToNextStep(next, { shuffle: shuffleDeck });
         await persist(next);
     }
 
@@ -445,6 +485,80 @@ export default function GameScreen() {
                                     >
                                         <Text className="font-sans-bold text-azul-noche text-sm">Atacar</Text>
                                     </Pressable>
+                                </View>
+                            )}
+                            {/* MANO Y BIBLIOTECA — solo si el jugador trae mazo
+                                (library !== undefined). Sin mazo, este bloque no
+                                aparece y la partida funciona igual que antes. */}
+                            {p.library !== undefined && (
+                                <View className="mt-2 gap-2 border-t border-crema/10 pt-2">
+                                    <View className="flex-row justify-between items-center">
+                                        <Text className="font-sans-semibold text-gris-pizarra text-xs">
+                                            Biblioteca {p.library.length} · Mano{' '}
+                                            {p.hand?.length ?? 0} · Descarte{' '}
+                                            {p.discardPile?.length ?? 0}
+                                        </Text>
+                                        <Pressable
+                                            onPress={() => handleDraw(p.id)}
+                                            className="bg-dorado/15 border border-dorado rounded-lg px-3 py-1.5"
+                                        >
+                                            <Text className="font-sans-bold text-dorado text-xs">
+                                                Robar carta
+                                            </Text>
+                                        </Pressable>
+                                    </View>
+                                    {(p.hand?.length ?? 0) === 0 ? (
+                                        <Text className="font-sans text-gris-pizarra text-xs">
+                                            Mano vacía.
+                                        </Text>
+                                    ) : (
+                                        <ScrollView
+                                            horizontal
+                                            showsHorizontalScrollIndicator={false}
+                                            contentContainerStyle={{ gap: 8, paddingVertical: 2 }}
+                                        >
+                                            {(p.hand ?? []).map((cardCode, idx) => {
+                                                const def = getCardDefinition(cardCode);
+                                                return (
+                                                    <View
+                                                        key={`${cardCode}-${idx}`}
+                                                        className="items-center gap-1"
+                                                        style={{ width: 64 }}
+                                                    >
+                                                        <CardThumb
+                                                            cardId={cardCode}
+                                                            size="sm"
+                                                            onPress={() => setModalCardId(cardCode)}
+                                                        />
+                                                        <Text
+                                                            className="font-sans text-gris-pizarra text-[9px] text-center"
+                                                            numberOfLines={1}
+                                                        >
+                                                            {def?.nameEs ?? cardCode}
+                                                        </Text>
+                                                        <View className="flex-row gap-1">
+                                                            <Pressable
+                                                                onPress={() => handlePlayCard(p.id, cardCode)}
+                                                                className="bg-crema/10 rounded px-2 py-0.5"
+                                                            >
+                                                                <Text className="font-sans text-crema text-[9px]">
+                                                                    Jugar
+                                                                </Text>
+                                                            </Pressable>
+                                                            <Pressable
+                                                                onPress={() => handleDiscardCard(p.id, cardCode)}
+                                                                className="bg-crema/10 rounded px-2 py-0.5"
+                                                            >
+                                                                <Text className="font-sans text-crema text-[9px]">
+                                                                    Tirar
+                                                                </Text>
+                                                            </Pressable>
+                                                        </View>
+                                                    </View>
+                                                );
+                                            })}
+                                        </ScrollView>
+                                    )}
                                 </View>
                             )}
                         </View>
