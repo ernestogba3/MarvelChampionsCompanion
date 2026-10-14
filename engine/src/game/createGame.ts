@@ -1,31 +1,11 @@
-import type { Difficulty, GameState, PlayerState } from "../domain/types";
-
-const RHINO_STANDARD_ENCOUNTER_DECK: string[] = [
-  "01098",
-  "01099",
-  "01099",
-  "01100",
-  "01101",
-  "01101",
-  "01102",
-  "01103",
-  "01104",
-  "01104",
-  "01105",
-  "01105",
-  "01106",
-  "01106",
-  "01106",
-  "01107",
-  "01108",
-  "01186",
-  "01186",
-  "01187",
-  "01187",
-  "01188",
-  "01189",
-  "01190",
-];
+import type {
+  Difficulty,
+  GameState,
+  PlayerState,
+  SchemeState,
+  VillainState,
+} from "../domain/types";
+import { getScenario } from "../scenarios";
 
 export interface PlayerSetup {
   id: string;
@@ -42,10 +22,8 @@ export interface PlayerSetup {
   heroCardId?: string;
   alterEgoCardId?: string;
   // ID del mazo guardado que este jugador trae a la partida (ver
-  // mobile/storage/gameStorage.ts → tabla "decks"). Opcional: el motor NO
-  // simula todavía la biblioteca del jugador, pero el ID viaja con el
-  // PlayerState para que la app companion sepa qué cartas tiene cada
-  // jugador. Partidas iniciadas sin elegir mazo simplemente no lo traen.
+  // mobile/storage/gameStorage.ts → tabla "decks"). Opcional: lo usa la app
+  // para inicializar la biblioteca simulada del jugador.
   deckId?: string;
 }
 
@@ -71,19 +49,27 @@ function buildPlayers(setups: PlayerSetup[]): PlayerState[] {
 }
 
 /**
- * Crea una partida de Rino para 1-4 jugadores. Confirmado contra el RRG
- * v1.7 y los datos per-player de marvelcdb: los PG del villano y el umbral
- * del plan principal escalan ×nº de jugadores; la amenaza inicial del plan
- * principal es fija (0) y no escala. La aceleración por ronda ya escala
- * aparte, dentro de addThreatStep (multiplica escalationThreat × nº de
- * jugadores, sin tocar aquí).
+ * Crea una partida para cualquier escenario registrado (ver scenarios/). El
+ * motor es genérico: toma los datos del villano (estadios, PG por jugador,
+ * plan principal, planes secundarios iniciales, mazo de encuentros) de la
+ * definición del escenario y construye el GameState.
+ *
+ * Los PG del villano y el umbral del plan principal escalan ×nº de jugadores;
+ * la amenaza inicial del plan principal no (la aceleración por ronda escala
+ * aparte, en addThreatStep).
  */
-export function createRhinoGame(
+export function createGame(
+  scenarioId: string,
   playerSetups: PlayerSetup[],
   difficulty: Difficulty = "STANDARD",
 ): GameState {
   if (playerSetups.length === 0) {
     throw new Error("Se necesita al menos un jugador para crear la partida.");
+  }
+
+  const scenario = getScenario(scenarioId);
+  if (scenario === undefined) {
+    throw new Error(`Escenario desconocido: ${scenarioId}`);
   }
 
   const playerCount = playerSetups.length;
@@ -94,83 +80,68 @@ export function createRhinoGame(
   }
   const firstPlayerId = firstPlayer.id;
 
-  const mainScheme = {
-    id: "main-break-in",
-    cardId: "01097",
-    name: "¡Allanamiento!",
-    threat: 0,
-    threatToComplete: 7 * playerCount,
-    escalationThreat: 1,
+  const startStageName = scenario.progression[difficulty].start;
+  const startStage = scenario.stages.find((s) => s.stage === startStageName);
+  if (startStage === undefined) {
+    throw new Error(
+      `El escenario "${scenario.id}" no define el estadio inicial ${startStageName}.`,
+    );
+  }
+
+  const health = startStage.healthPerPlayer * playerCount;
+  const villain: VillainState = {
+    cardId: startStage.cardId,
+    name: scenario.villainName,
+    stage: startStage.stage,
+    health,
+    maxHealth: health,
+    attack: startStage.attack,
+    scheme: startStage.scheme,
+    tough: startStage.tough,
+    attachments: [],
+  };
+
+  const mainScheme: SchemeState = {
+    id: scenario.mainScheme.id,
+    cardId: scenario.mainScheme.cardId,
+    name: scenario.mainScheme.name,
+    threat: scenario.mainScheme.startingThreat,
+    threatToComplete:
+      scenario.mainScheme.threatToCompletePerPlayer * playerCount,
+    escalationThreat: scenario.mainScheme.escalationThreat,
     isMain: true,
     accelerationTokens: 0,
   };
 
-  if (difficulty === "EXPERT") {
-    // En Experto: Rino arranca en estadio II (habilidad al revelarse: Arramblar con todo en juego).
-    // Al derrotar a Rino II pasa a Rino III, cuya muerte es la victoria.
-    const health = 15 * playerCount;
-    return {
-      round: 1,
-      phase: { name: "PLAYER_PHASE" },
-      difficulty: "EXPERT",
-      firstPlayerId,
-      players,
-      villain: {
-        cardId: "01095",
-        name: "Rhino",
-        stage: "II",
-        health,
-        maxHealth: health,
-        attack: 3,
-        scheme: 1,
-        tough: false,
-        attachments: [],
-      },
-      schemes: [
-        mainScheme,
-        {
-          id: "side-breakin-takin",
-          cardId: "01107",
-          name: "Arramblar con todo",
-          threat: 2,
-          threatToComplete: 0,
-          escalationThreat: 0,
-          isMain: false,
-          accelerationTokens: 0,
-        },
-      ],
-      minions: [],
-      encounterDeck: [...RHINO_STANDARD_ENCOUNTER_DECK],
-      encounterDiscard: [],
-      pendingEncounterDeals: [],
-      reservedNemesis: null,
-      eventLog: [],
-    };
-  }
+  // Planes secundarios que entran con el estadio inicial (p.ej. en Experto,
+  // Rino arranca en II con "Arramblar con todo" ya en juego).
+  const sideSchemes: SchemeState[] = startStage.sideSchemesOnEnter.map((s) => ({
+    id: s.id,
+    cardId: s.cardId,
+    name: s.name,
+    threat: s.threat,
+    threatToComplete: s.threatToComplete,
+    escalationThreat: s.escalationThreat,
+    isMain: false,
+    accelerationTokens: s.accelerationTokens,
+  }));
 
-  // Estándar: Rino arranca en estadio I. Al derrotarlo pasa a II, cuya muerte es la victoria.
-  const health = 14 * playerCount;
+  // Si el estadio inicial aturde al revelarse (ningún estadio inicial de Rino
+  // lo hace, pero lo cubrimos por corrección para futuros villanos).
+  const startingPlayers = startStage.stunAllOnReveal
+    ? players.map((p) => ({ ...p, stunned: true }))
+    : players;
+
   return {
     round: 1,
     phase: { name: "PLAYER_PHASE" },
-    difficulty: "STANDARD",
+    difficulty,
     firstPlayerId,
-    players,
-    villain: {
-      cardId: "01094",
-      name: "Rhino",
-      stage: "I",
-      health,
-      maxHealth: health,
-      attack: 2,
-      scheme: 1,
-      tough: false,
-      attachments: [],
-    },
-    schemes: [mainScheme],
+    players: startingPlayers,
+    villain,
+    schemes: [mainScheme, ...sideSchemes],
     minions: [],
-    encounterDeck: [...RHINO_STANDARD_ENCOUNTER_DECK],
-    // sin barajar a propósito: el orden real se decide fuera del motor, para que los tests sean deterministas
+    encounterDeck: [...scenario.encounterDeck],
     encounterDiscard: [],
     pendingEncounterDeals: [],
     reservedNemesis: null,
@@ -179,9 +150,21 @@ export function createRhinoGame(
 }
 
 /**
+ * Compatibilidad: crea una partida de Rino para 1-4 jugadores. Es un
+ * envoltorio de createGame("rhino", …) — el resultado es idéntico al del
+ * createRhinoGame original.
+ */
+export function createRhinoGame(
+  playerSetups: PlayerSetup[],
+  difficulty: Difficulty = "STANDARD",
+): GameState {
+  return createGame("rhino", playerSetups, difficulty);
+}
+
+/**
  * Compatibilidad con el código y tests existentes de 1 jugador (Spider-Man).
- * Es un envoltorio de createRhinoGame con un único PlayerSetup — el
- * comportamiento para 1 jugador es idéntico al de antes (14/15 PG, umbral 7).
+ * Envoltorio de createRhinoGame con un único PlayerSetup — comportamiento
+ * idéntico al de antes (10 PG de héroe, Rino 14/15 PG, umbral 7).
  */
 export function createSpiderManVsRhinoGame(
   playerId: string = "player-1",

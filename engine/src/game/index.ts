@@ -1,6 +1,22 @@
 export const ping = () => "engine ok";
-export { createSpiderManVsRhinoGame, createRhinoGame } from "./createGame";
+export {
+  createGame,
+  createSpiderManVsRhinoGame,
+  createRhinoGame,
+} from "./createGame";
 export type { PlayerSetup } from "./createGame";
+export {
+  getScenario,
+  getScenarioByVillainName,
+  ALL_SCENARIOS,
+} from "../scenarios";
+export type {
+  ScenarioDefinition,
+  VillainStageDefinition,
+  ScenarioMainScheme,
+  ScenarioSideScheme,
+  StageProgression,
+} from "../scenarios";
 export {
   serializeGameState,
   deserializeGameState,

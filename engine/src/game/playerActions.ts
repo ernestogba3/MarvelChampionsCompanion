@@ -1,12 +1,10 @@
 import type { GameState } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import { dealDamageToVillain } from "./villainDamage";
-import {
-  advanceToRhinoStageTwo,
-  advanceToRhinoStageThree,
-} from "./villainStages";
+import { advanceVillainStage } from "./villainStages";
 import { canRemoveThreatFromMainScheme } from "./sideSchemes";
 import { canAttackVillain } from "./combat";
+import { getScenarioByVillainName } from "../scenarios";
 
 export function attackVillain(
   state: GameState,
@@ -57,31 +55,22 @@ export function attackVillain(
   const { state: afterDamage, events } = dealDamageToVillain(state, amount);
 
   if (afterDamage.villain.health <= 0) {
-    // Estándar: I -> II (II es la fase final).
-    // Experto: II -> III (III es la fase final).
-    if (
-      afterDamage.difficulty === "STANDARD" &&
-      afterDamage.villain.stage === "I"
-    ) {
-      const { state: afterStage, events: stageEvents } =
-        advanceToRhinoStageTwo(afterDamage);
-      return {
-        state: afterStage,
-        events: [...events, ...stageEvents],
-      };
+    // Al reducir los PG a 0, si el villano NO está en su estadio final (según
+    // la dificultad y la definición del escenario), avanza al siguiente
+    // estadio. En el estadio final no se avanza: checkGameOutcome lo marca
+    // como WIN. Genérico para cualquier villano registrado (ver scenarios/).
+    const scenario = getScenarioByVillainName(afterDamage.villain.name);
+    if (scenario !== undefined) {
+      const finalStage = scenario.progression[afterDamage.difficulty].final;
+      if (afterDamage.villain.stage !== finalStage) {
+        const { state: afterStage, events: stageEvents } =
+          advanceVillainStage(afterDamage);
+        return {
+          state: afterStage,
+          events: [...events, ...stageEvents],
+        };
+      }
     }
-    if (
-      afterDamage.difficulty === "EXPERT" &&
-      afterDamage.villain.stage === "II"
-    ) {
-      const { state: afterStage, events: stageEvents } =
-        advanceToRhinoStageThree(afterDamage);
-      return {
-        state: afterStage,
-        events: [...events, ...stageEvents],
-      };
-    }
-    // En la fase final (Standard II / Expert III) no se avanza: checkGameOutcome lo marca como WIN.
   }
 
   return { state: afterDamage, events };
@@ -97,7 +86,16 @@ export function checkGameOutcome(state: GameState): GameOutcome {
     return "LOSS";
   }
 
-  const finalStage = state.difficulty === "EXPERT" ? "III" : "II";
+  // El estadio final depende del escenario y la dificultad. Si por lo que sea
+  // no hay escenario registrado para este villano, caemos al comportamiento
+  // original (Experto → III, Estándar → II) para no cambiar nada.
+  const scenario = getScenarioByVillainName(state.villain.name);
+  const finalStage =
+    scenario !== undefined
+      ? scenario.progression[state.difficulty].final
+      : state.difficulty === "EXPERT"
+        ? "III"
+        : "II";
   if (state.villain.stage === finalStage && state.villain.health <= 0) {
     return "WIN";
   }
