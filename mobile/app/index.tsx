@@ -11,10 +11,11 @@ import {
 } from '../storage/gameStorage';
 import { getHeroCatalog, type HeroCatalogEntry } from '../services/heroCatalog';
 import {
-  createRhinoGame,
+  createGame,
   serializeGameState,
   deserializeGameState,
   initPlayerLibrary,
+  ALL_SCENARIOS,
 } from 'engine';
 import type { GameState, PlayerSetup, DeckDefinition } from 'engine';
 
@@ -66,6 +67,11 @@ export default function IndexScreen() {
   const [savedGame, setSavedGame] = useState<GameState | null>(null);
   const [ready, setReady] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>('STANDARD');
+  // Escenario (villano) elegido para una nueva partida. Por defecto Rino, para
+  // conservar el comportamiento anterior. La lista sale del registro de
+  // escenarios del motor (ALL_SCENARIOS), así que añadir villanos nuevos al
+  // motor los hace aparecer aquí sin tocar esta pantalla.
+  const [scenarioId, setScenarioId] = useState<string>('rhino');
   const [playerCount, setPlayerCount] = useState(1);
   const [slots, setSlots] = useState<PlayerSetup[]>(DEFAULT_SLOTS);
 
@@ -233,7 +239,7 @@ export default function IndexScreen() {
       );
       return;
     }
-    let state = createRhinoGame(activeSlots, difficulty);
+    let state = createGame(scenarioId, activeSlots, difficulty);
     // Para cada jugador que trae mazo: cargarlo, barajarlo e inicializar su
     // biblioteca (mano inicial + biblioteca). Los jugadores sin mazo quedan
     // sin biblioteca simulada y el motor simplemente no les roba cartas.
@@ -281,6 +287,12 @@ export default function IndexScreen() {
     );
   }
 
+  // Escenario elegido y etiquetas de progresión por dificultad (p.ej. "I → II").
+  const selectedScenario = ALL_SCENARIOS.find((s) => s.id === scenarioId);
+  const villainName = selectedScenario?.villainName ?? 'Villano';
+  const stdProg = selectedScenario?.progression.STANDARD;
+  const expProg = selectedScenario?.progression.EXPERT;
+
   return (
     <SafeAreaView className="flex-1 bg-azul-noche" edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
@@ -308,7 +320,8 @@ export default function IndexScreen() {
                   {savedGame.villain.name}
                 </Text>
                 <Text className="font-sans text-gris-pizarra text-xs">
-                  Ronda {savedGame.round} · Rino {savedGame.villain.stage} ·{' '}
+                  Ronda {savedGame.round} · {savedGame.villain.name}{' '}
+                  {savedGame.villain.stage} ·{' '}
                   {savedGame.villain.health}/{savedGame.villain.maxHealth} VIDA
                 </Text>
                 <Text className="font-sans-semibold text-dorado text-[10px] uppercase tracking-widest">
@@ -326,6 +339,34 @@ export default function IndexScreen() {
                 </Pressable>
               </View>
             )}
+
+            <View className="gap-2">
+              <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
+                Villano
+              </Text>
+              <View className="flex-row gap-2">
+                {ALL_SCENARIOS.map((sc) => {
+                  const active = scenarioId === sc.id;
+                  return (
+                    <Pressable
+                      key={sc.id}
+                      onPress={() => setScenarioId(sc.id)}
+                      className={`flex-1 rounded-xl py-3 items-center border ${active
+                        ? 'bg-dorado/15 border-dorado'
+                        : 'border-crema/20'
+                        }`}
+                    >
+                      <Text
+                        className={`font-sans-bold text-base ${active ? 'text-dorado' : 'text-crema'
+                          }`}
+                      >
+                        {sc.villainName}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
 
             <View className="gap-2">
               <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
@@ -541,7 +582,9 @@ export default function IndexScreen() {
                     Estándar
                   </Text>
                   <Text className="font-sans text-gris-pizarra text-[10px] mt-0.5">
-                    Rino I → II
+                    {stdProg
+                      ? `${villainName} ${stdProg.start} → ${stdProg.final}`
+                      : 'Dificultad estándar'}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -558,7 +601,9 @@ export default function IndexScreen() {
                     Experto
                   </Text>
                   <Text className="font-sans text-gris-pizarra text-[10px] mt-0.5">
-                    Rino II → III
+                    {expProg
+                      ? `${villainName} ${expProg.start} → ${expProg.final}`
+                      : 'Dificultad experto'}
                   </Text>
                 </Pressable>
               </View>
@@ -578,7 +623,7 @@ export default function IndexScreen() {
             </Pressable>
 
             <Text className="font-sans text-gris-pizarra text-xs text-center mt-2">
-              {playerCount} {playerCount === 1 ? 'jugador' : 'jugadores'} vs. Rino ·{' '}
+              {playerCount} {playerCount === 1 ? 'jugador' : 'jugadores'} vs. {villainName} ·{' '}
               {difficulty === 'STANDARD' ? 'Dificultad estándar' : 'Dificultad experto'}
             </Text>
           </View>
