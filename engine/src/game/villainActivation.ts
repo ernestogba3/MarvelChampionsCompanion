@@ -4,7 +4,7 @@ import { applyEffects } from "../effects/applyEffect";
 import { drawFromEncounterDeck } from "./encounterDeck";
 import { getCardDefinition } from "../data/cards";
 import { getScenarioByVillainName } from "../scenarios";
-import { advanceMainSchemeIfComplete } from "./mainScheme";
+import { advanceMainSchemeIfComplete } from "../game/mainScheme";
 
 export function resolveVillainActivation(
   state: GameState,

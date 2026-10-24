@@ -1,6 +1,7 @@
 import type { ScenarioDefinition } from "./types";
 import { RHINO_SCENARIO } from "./rhino";
 import { KLAW_SCENARIO } from "./klaw";
+import { ULTRON_SCENARIO } from "./ultron";
 
 export type {
   ScenarioDefinition,
@@ -15,6 +16,7 @@ export type {
 const SCENARIOS: Record<string, ScenarioDefinition> = {
   [RHINO_SCENARIO.id]: RHINO_SCENARIO,
   [KLAW_SCENARIO.id]: KLAW_SCENARIO,
+  [ULTRON_SCENARIO.id]: ULTRON_SCENARIO,
 };
 
 /** Busca un escenario por su id (la clave estable: "rhino", "klaw", …). */

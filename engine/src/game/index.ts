@@ -27,6 +27,13 @@ export {
   advanceMainSchemeIfComplete,
   isMainSchemeFinalStage,
 } from "./mainScheme";
+export {
+  createDrone,
+  droneCount,
+  DRONE_BASE_ATTACK,
+  DRONE_BASE_SCHEME,
+  DRONE_BASE_HEALTH,
+} from "./drones";
 export { resolveVillainActivation } from "./villainActivation";
 export { dealPendingEncounterCards } from "./dealEncounterCards";
 export { describeCurrentStep } from "../explanations/stepGuide";

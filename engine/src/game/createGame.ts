@@ -99,6 +99,8 @@ export function createGame(
     scheme: startStage.scheme,
     tough: startStage.tough,
     attachments: [],
+    immuneWhileDronesPresent: startStage.immuneWhileDronesPresent ?? false,
+    droneBonus: startStage.droneBonus ?? 0,
   };
 
   const mainScheme: SchemeState = {

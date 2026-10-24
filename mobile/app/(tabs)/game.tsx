@@ -10,6 +10,7 @@ import {
     Dimensions,
     Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import {
     deserializeGameState,
@@ -30,6 +31,7 @@ import {
     drawCards,
     playCardFromHand,
     discardCardFromHand,
+    createDrone,
 } from 'engine';
 import type { GameState } from 'engine';
 import { loadGame, saveGame } from '../../storage/gameStorage';
@@ -181,11 +183,35 @@ export default function GameScreen() {
         if (blocked) {
             Alert.alert(
                 'Bloqueado por Guardia',
-                `No puedes atacar a Rino mientras "${blocked.minionName}" esté enfrentado contigo. Derrótalo primero.`,
+                `No puedes atacar a ${state.villain.name} mientras "${blocked.minionName}" esté enfrentado contigo. Derrótalo primero.`,
+            );
+            return;
+        }
+        // Inmunidad de Ultron III: no puede sufrir daño mientras haya un Dron.
+        const immune = events.find((e: any) => e.type === 'ATTACK_BLOCKED_BY_DRONES');
+        if (immune) {
+            Alert.alert(
+                'Inmune por los Drones',
+                `${state.villain.name} no puede sufrir daño mientras haya un Dron en juego. Derrota primero todos los Drones.`,
             );
             return;
         }
         setDamageInputs((prev) => ({ ...prev, [playerId]: '' }));
+        await persist(next);
+    }
+
+    async function handleCreateDrone(playerId: string) {
+        if (!state) return;
+        const { state: next, events } = runAndLog(createDrone, state, playerId, {
+            shuffle: shuffleDeck,
+        });
+        if (!events.some((e: any) => e.type === 'DRONE_CREATED')) {
+            Alert.alert(
+                'Sin cartas',
+                'Este jugador no tiene mazo o se ha quedado sin cartas para poner como Dron.',
+            );
+            return;
+        }
         await persist(next);
     }
 
@@ -366,6 +392,10 @@ export default function GameScreen() {
     const canConfirm =
         !isRevealStep || faceDownCount === 0 || encounterPicks.length === faceDownCount;
 
+    // ¿Este villano usa Drones? Hoy solo Ultron. Al añadir más villanos con
+    // drones, amplía esta condición (o expón un flag del escenario).
+    const villainUsesDrones = state.villain.name === 'Ultron';
+
     return (
         <>
             <ScrollView className="flex-1 bg-azul-noche" contentContainerStyle={{ padding: 20, gap: 16 }}>
@@ -411,7 +441,7 @@ export default function GameScreen() {
                     <View className="flex-1 gap-2">
                         <View className="flex-row justify-between items-center">
                             <Text className="font-sans-bold text-crema text-base">
-                                Rino ({state.villain.stage})
+                                {state.villain.name} ({state.villain.stage})
                             </Text>
                             <Text className="font-sans text-gris-pizarra text-xs">
                                 {state.villain.health} / {state.villain.maxHealth}
@@ -422,6 +452,15 @@ export default function GameScreen() {
                             max={state.villain.maxHealth}
                             color="bg-rojo-acento"
                         />
+                        {state.villain.immuneWhileDronesPresent &&
+                            state.minions.some((m) => m.isDrone) && (
+                                <Text
+                                    className="font-sans-semibold text-[11px]"
+                                    style={{ color: '#ef4444' }}
+                                >
+                                    Inmune: no puede sufrir daño mientras haya un Dron en juego.
+                                </Text>
+                            )}
                         {lastBoostCard && (
                             <View className="flex-row items-center gap-2 mt-1">
                                 <CardThumb
@@ -488,6 +527,17 @@ export default function GameScreen() {
                                     </Text>
                                 </Pressable>
                             </View>
+                            {villainUsesDrones && p.library !== undefined && (
+                                <Pressable
+                                    onPress={() => handleCreateDrone(p.id)}
+                                    className="border rounded-lg py-2 items-center mt-1"
+                                    style={{ borderColor: 'rgba(212,162,76,0.5)' }}
+                                >
+                                    <Text className="font-sans-semibold text-dorado text-sm">
+                                        Crear Dron (cima del mazo)
+                                    </Text>
+                                </Pressable>
+                            )}
                             {isPlayerPhase && (
                                 <View className="flex-row gap-2 mt-1">
                                     <TextInput
@@ -498,7 +548,7 @@ export default function GameScreen() {
                                         onChangeText={(text) =>
                                             setDamageInputs((prev) => ({ ...prev, [p.id]: text }))
                                         }
-                                        placeholder="Daño a Rino"
+                                        placeholder={`Daño a ${state.villain.name}`}
                                     />
                                     <Pressable
                                         onPress={() => handleAttack(p.id)}
@@ -655,11 +705,30 @@ export default function GameScreen() {
                             const engagedPlayer = state.players.find((p) => p.id === minion.engagedWith);
                             return (
                                 <View key={minion.id} className="flex-row gap-3">
-                                    <CardThumb cardId={minion.cardId} onPress={() => setModalCardId(minion.cardId)} />
+                                    {minion.isDrone ? (
+                                        // Dron: carta boca abajo, no se muestra la ilustración.
+                                        <View
+                                            style={{
+                                                width: 50,
+                                                height: 70,
+                                                borderRadius: 4,
+                                                backgroundColor: '#1a1f3a',
+                                                borderWidth: 1,
+                                                borderColor: 'rgba(212,162,76,0.4)',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <Ionicons name="hardware-chip" size={22} color="#D4A24C" />
+                                        </View>
+                                    ) : (
+                                        <CardThumb cardId={minion.cardId} onPress={() => setModalCardId(minion.cardId)} />
+                                    )}
                                     <View className="flex-1 gap-1">
                                         <View className="flex-row justify-between items-center">
                                             <Text className="font-sans text-crema text-sm flex-1" numberOfLines={1}>
                                                 {minion.name}
+                                                {minion.isDrone ? ' · boca abajo' : ''}
                                                 {minion.guard ? ' · Guardia' : ''}
                                             </Text>
                                             <Text className="font-sans text-gris-pizarra text-xs">

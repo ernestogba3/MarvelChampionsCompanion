@@ -65,6 +65,20 @@ export function attackVillain(
     };
   }
 
+  // Inmunidad por Drones (Ultron III): el villano no puede sufrir daño
+  // mientras haya un Esbirro Dron en juego. El ataque se anula por completo.
+  if (
+    state.villain.immuneWhileDronesPresent &&
+    state.minions.some((m) => m.isDrone)
+  ) {
+    return {
+      state,
+      events: [
+        { type: "ATTACK_BLOCKED_BY_DRONES", villainName: state.villain.name },
+      ],
+    };
+  }
+
   // Resistente (Toughness): si el villano tiene un status card Tough en juego,
   // este ataque no le hace NADA de daño (no se reduce "en N") y el Tough se
   // descarta. Confirmado contra el RRG v1.7: Rino (III) entra en juego con
@@ -184,21 +198,39 @@ export function attackMinion(
     };
   }
   const newHealth = Math.max(0, minion.health - amount);
-  let next: GameState =
-    newHealth <= 0
-      ? {
-          ...state,
-          minions: state.minions.filter((m) => m.id !== minionId),
-        }
-      : {
-          ...state,
-          minions: state.minions.map((m) =>
-            m.id === minionId ? { ...m, health: newHealth } : m,
-          ),
-        };
+  const defeated = newHealth <= 0;
+  let next: GameState = defeated
+    ? {
+        ...state,
+        minions: state.minions.filter((m) => m.id !== minionId),
+      }
+    : {
+        ...state,
+        minions: state.minions.map((m) =>
+          m.id === minionId ? { ...m, health: newHealth } : m,
+        ),
+      };
   let events: GameEvent[] = [
     { type: "DAMAGE_DEALT", targetId: minion.id, amount, source: "player" },
   ];
+  // Dron derrotado: su carta boca abajo vuelve al descarte de su dueño
+  // (el jugador con el que estaba enfrentado).
+  if (defeated && minion.isDrone && minion.faceDownCardCode) {
+    const ownerId = minion.engagedWith;
+    const cardCode = minion.faceDownCardCode;
+    next = {
+      ...next,
+      players: next.players.map((p) =>
+        p.id === ownerId
+          ? { ...p, discardPile: [...(p.discardPile ?? []), cardCode] }
+          : p,
+      ),
+    };
+    events = [
+      ...events,
+      { type: "DRONE_RETURNED", playerId: ownerId ?? "", cardCode },
+    ];
+  }
   // Represalia del esbirro: solo si conocemos al atacante y el esbirro la lleva.
   if (attackerId !== undefined) {
     const { state: afterRetaliate, events: retaliateEvents } = applyRetaliate(

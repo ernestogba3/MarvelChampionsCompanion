@@ -48,6 +48,7 @@ export function advanceVillainStage(state: GameState): {
   });
 
   const health = nextStage.healthPerPlayer * state.players.length;
+  const newDroneBonus = nextStage.droneBonus ?? 0;
   const newVillain: VillainState = {
     ...state.villain,
     cardId: nextStage.cardId,
@@ -57,6 +58,8 @@ export function advanceVillainStage(state: GameState): {
     health,
     maxHealth: health,
     tough: nextStage.tough,
+    immuneWhileDronesPresent: nextStage.immuneWhileDronesPresent ?? false,
+    droneBonus: newDroneBonus,
     // Solo se tocan las acopladas si el estadio lo pide; si no, se conservan.
     ...(nextStage.clearAttachmentsOnEnter && { attachments: [] }),
   };
@@ -99,12 +102,31 @@ export function advanceVillainStage(state: GameState): {
     }
   }
 
+  // Escalado de Drones: si el nuevo estadio cambia el bonus de dron (Ultron III
+  // = +1/+1), los Drones ya en juego se ajustan por la diferencia. El Plan de
+  // los drones no escala; solo ATQ y PG (y máximo).
+  const droneDelta = newDroneBonus - (state.villain.droneBonus ?? 0);
+  const newMinions =
+    droneDelta === 0
+      ? state.minions
+      : state.minions.map((m) =>
+          m.isDrone
+            ? {
+                ...m,
+                attack: Math.max(0, m.attack + droneDelta),
+                health: Math.max(1, m.health + droneDelta),
+                maxHealth: Math.max(1, m.maxHealth + droneDelta),
+              }
+            : m,
+        );
+
   return {
     state: {
       ...state,
       villain: newVillain,
       schemes: [...state.schemes, ...newSideSchemes],
       players: newPlayers,
+      minions: newMinions,
     },
     events,
   };

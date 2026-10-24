@@ -4,8 +4,9 @@ export type CardType =
   | "SIDE_SCHEME"
   | "MINION"
   | "TREACHERY"
-  | "ATTACHMENT";
-export type EncounterSet = "RHINO" | "KLAW" | "STANDARD";
+  | "ATTACHMENT"
+  | "ENVIRONMENT";
+export type EncounterSet = "RHINO" | "KLAW" | "ULTRON" | "STANDARD";
 export interface CardDefinition {
   id: string;
   nameEn: string;
@@ -330,6 +331,171 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     set: "KLAW",
     startingThreat: 3,
     boost: 0,
+  },
+  // -------------------------------------------------------------------------
+  // Set de ULTRON (Core Set, 01134–01150). Datos verificados contra marvelcdb
+  // (2026-10). PG de los estadios por jugador (×nº jugadores). Ultron gira en
+  // torno a los Drones (ver game/drones.ts).
+  // -------------------------------------------------------------------------
+  "01134": {
+    id: "01134",
+    nameEn: "Ultron (I)",
+    nameEs: "Ultrón (I)",
+    type: "VILLAIN",
+    set: "ULTRON",
+    traits: ["Android"],
+    attack: 2,
+    scheme: 1,
+    health: 17,
+  },
+  "01135": {
+    id: "01135",
+    nameEn: "Ultron (II)",
+    nameEs: "Ultrón (II)",
+    type: "VILLAIN",
+    set: "ULTRON",
+    traits: ["Android"],
+    attack: 2,
+    scheme: 2,
+    health: 22,
+  },
+  "01136": {
+    id: "01136",
+    nameEn: "Ultron (III)",
+    nameEs: "Ultrón (III)",
+    type: "VILLAIN",
+    set: "ULTRON",
+    traits: ["Android"],
+    attack: 4,
+    scheme: 2,
+    health: 27,
+  },
+  "01137": {
+    id: "01137",
+    nameEn: "The Crimson Cowl",
+    nameEs: "La Capucha Carmesí",
+    type: "MAIN_SCHEME",
+    set: "ULTRON",
+    startingThreat: 0,
+    escalationThreat: 1,
+    threatToComplete: 3,
+  },
+  "01138": {
+    id: "01138",
+    nameEn: "Assault on NORAD",
+    nameEs: "Ataque al NORAD",
+    type: "MAIN_SCHEME",
+    set: "ULTRON",
+    startingThreat: 0,
+    escalationThreat: 1,
+    threatToComplete: 10,
+  },
+  "01139": {
+    id: "01139",
+    nameEn: "Countdown to Oblivion",
+    nameEs: "Cuenta atrás para el olvido",
+    type: "MAIN_SCHEME",
+    set: "ULTRON",
+    startingThreat: 0,
+    escalationThreat: 1,
+    threatToComplete: 5,
+  },
+  "01140": {
+    id: "01140",
+    nameEn: "Ultron Drones",
+    nameEs: "Drones de Ultrón",
+    type: "ENVIRONMENT",
+    set: "ULTRON",
+  },
+  "01141": {
+    id: "01141",
+    nameEn: "Program Transmitter",
+    nameEs: "Transmisor de programa",
+    type: "ATTACHMENT",
+    set: "ULTRON",
+    traits: ["Item", "Tech"],
+    scheme: 1,
+    boost: 1,
+  },
+  "01142": {
+    id: "01142",
+    nameEn: "Upgraded Drones",
+    nameEs: "Drones mejorados",
+    type: "ATTACHMENT",
+    set: "ULTRON",
+    traits: ["Alteration"],
+    boost: 0,
+  },
+  "01143": {
+    id: "01143",
+    nameEn: "Advanced Ultron Drone",
+    nameEs: "Dron avanzado de Ultrón",
+    type: "MINION",
+    set: "ULTRON",
+    traits: ["Drone"],
+    attack: 1,
+    scheme: 1,
+    health: 4,
+    boost: 2,
+  },
+  "01144": {
+    id: "01144",
+    nameEn: "Android Efficiency",
+    nameEs: "Android Efficiency",
+    type: "TREACHERY",
+    set: "ULTRON",
+    boost: 0,
+  },
+  "01145": {
+    id: "01145",
+    nameEn: "Rage of Ultron",
+    nameEs: "La cólera de Ultrón",
+    type: "TREACHERY",
+    set: "ULTRON",
+    boost: 2,
+  },
+  "01146": {
+    id: "01146",
+    nameEn: "Repair Sequence",
+    nameEs: "Secuencia de reparación",
+    type: "TREACHERY",
+    set: "ULTRON",
+    boost: 1,
+  },
+  "01147": {
+    id: "01147",
+    nameEn: "Swarm Attack",
+    nameEs: "Ejército robótico",
+    type: "TREACHERY",
+    set: "ULTRON",
+    boost: 1,
+  },
+  "01148": {
+    id: "01148",
+    nameEn: "Drone Factory",
+    nameEs: "Fábrica de drones",
+    type: "SIDE_SCHEME",
+    set: "ULTRON",
+    startingThreat: 4,
+    boost: 2,
+  },
+  "01149": {
+    id: "01149",
+    nameEn: "Invasive AI",
+    nameEs: "IA invasiva",
+    type: "SIDE_SCHEME",
+    set: "ULTRON",
+    startingThreat: 3,
+    boost: 3,
+  },
+  "01150": {
+    id: "01150",
+    nameEn: "Ultron's Imperative",
+    nameEs: "La Directriz Ultrón",
+    type: "SIDE_SCHEME",
+    set: "ULTRON",
+    startingThreat: 2,
+    boost: 3,
   },
   "01186": {
     id: "01186",

@@ -65,6 +65,12 @@ export interface VillainState {
   // del Core Set la lleva impresa (a Klaw se la daría un acople, aún no
   // modelado); el campo es infraestructura lista para villanos que la tengan.
   retaliate?: number;
+  // Ultron III: no puede sufrir daño mientras haya un Esbirro Dron en juego.
+  immuneWhileDronesPresent?: boolean;
+  // Bonus +N de ATQ/PG que reciben los Drones por el estadio del villano
+  // (Ultron III = 1). El bonus del acople "Drones mejorados" NO se incluye
+  // aquí (se aplica a mano). undefined/0 = sin bonus.
+  droneBonus?: number;
 }
 
 export interface SchemeState {
@@ -98,6 +104,13 @@ export interface MinionState {
   // daño de vuelta. Opcional (infraestructura); los esbirros del Core Set no
   // la llevan impresa.
   retaliate?: number;
+  // Esbirro Dron (Ultron): se crea poniendo boca abajo la carta superior de la
+  // biblioteca del jugador. Al ser derrotado, esa carta vuelve al descarte de
+  // su dueño (engagedWith). Los drones escalan con villain.droneBonus.
+  isDrone?: boolean;
+  // Código de la carta puesta boca abajo que representa este dron (para
+  // devolverla al descarte del dueño al derrotarlo).
+  faceDownCardCode?: string;
 }
 
 export interface NemesisSet {

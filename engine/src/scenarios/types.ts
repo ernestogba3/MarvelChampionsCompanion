@@ -30,6 +30,16 @@ export interface VillainStageDefinition {
   /** Habilidad "al revelarse": aturde a todos los héroes. */
   stunAllOnReveal: boolean;
   /**
+   * Ultron III: el villano no puede sufrir daño mientras haya un Esbirro Dron
+   * en juego. Opcional, por defecto false.
+   */
+  immuneWhileDronesPresent?: boolean;
+  /**
+   * Bonus +N de ATQ/PG que reciben los Drones en este estadio (Ultron III = 1).
+   * Opcional, por defecto 0.
+   */
+  droneBonus?: number;
+  /**
    * Si al entrar en este estadio se descartan las cartas acopladas al villano.
    * Rino III las descarta; Rino II las conserva (comportamiento del motor
    * original, reproducido fielmente aquí).

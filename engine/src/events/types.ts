@@ -46,4 +46,18 @@ export type GameEvent =
       from: string;
       to: string;
       schemeId: string;
-    };
+    }
+  // --- Drones (Ultron, ver game/drones.ts) ---
+  // Se creó un Esbirro Dron poniendo boca abajo la carta superior de la
+  // biblioteca del jugador. cardCode es esa carta (queda oculta como dron).
+  | {
+      type: "DRONE_CREATED";
+      playerId: string;
+      minionId: string;
+      cardCode: string;
+    }
+  // Un Dron fue derrotado: su carta boca abajo vuelve al descarte de su dueño.
+  | { type: "DRONE_RETURNED"; playerId: string; cardCode: string }
+  // Ataque anulado: el villano no puede sufrir daño mientras haya un Dron en
+  // juego (habilidad de Ultron III).
+  | { type: "ATTACK_BLOCKED_BY_DRONES"; villainName: string };
