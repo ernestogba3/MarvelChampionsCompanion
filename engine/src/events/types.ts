@@ -38,4 +38,12 @@ export type GameEvent =
   // juego; la app decide dónde va visualmente).
   | { type: "CARD_PLAYED"; playerId: string; cardCode: string }
   // Carta de la mano enviada a la pila de descarte.
-  | { type: "CARD_DISCARDED"; playerId: string; cardCode: string };
+  | { type: "CARD_DISCARDED"; playerId: string; cardCode: string }
+  // El plan principal alcanzó su umbral y avanzó a la siguiente etapa (planes
+  // de varias etapas, p.ej. Klaw: 01116 → 01117). from/to son cardId.
+  | {
+      type: "MAIN_SCHEME_ADVANCED";
+      from: string;
+      to: string;
+      schemeId: string;
+    };

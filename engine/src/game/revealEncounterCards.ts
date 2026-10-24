@@ -97,6 +97,14 @@ export function revealPendingCardsForPlayer(
     } else if (!def) {
       unresolvedCardIds.push(cardId);
     }
+    // Oleada impresa (Surge): al revelarse, se revelará una carta de encuentro
+    // adicional. El motor emite el evento; la app lo detecta y reparte+revela
+    // una carta más al mismo jugador (reutilizando el flujo de reparto/revelado
+    // y la selección manual). Las cartas que "ganan Oleada" por condición NO
+    // tienen surge:true, así que esa decisión la toma el jugador por el texto.
+    if (def?.surge) {
+      allEvents.push({ type: "CARD_GAINED_SURGE", cardName: def.nameEs });
+    }
     currentState = {
       ...currentState,
       encounterDiscard: [...currentState.encounterDiscard, cardId],

@@ -20,6 +20,11 @@ export interface CardDefinition {
   escalationThreat?: number;
   threatToComplete?: number;
   boost?: number;
+  // Palabra clave Oleada (Surge) IMPRESA en la carta: al revelarse como carta
+  // de encuentro, se revela una carta de encuentro adicional. Solo para Oleada
+  // impresa; las cartas que "ganan Oleada" bajo condición (muchas treacheries)
+  // NO se marcan aquí — esa condición la evalúa el jugador (guiada).
+  surge?: boolean;
 }
 export const CARD_CATALOG: Record<string, CardDefinition> = {
   "01094": {
@@ -268,9 +273,11 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     attack: 1,
     scheme: 1,
     health: 2,
-    // Oleada + icono de aumento "estrella" (efecto especial, no numérico):
-    // su aportación numérica al aumento es 0; el efecto lo guía la app.
+    // Oleada (impresa) + icono de aumento "estrella" (efecto especial, no
+    // numérico): su aportación numérica al aumento es 0 y el efecto estrella lo
+    // guía la app; la Oleada sí la aplica el motor (robar otra carta).
     boost: 0,
+    surge: true,
   },
   "01122": {
     id: "01122",

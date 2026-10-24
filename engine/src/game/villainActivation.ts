@@ -4,6 +4,7 @@ import { applyEffects } from "../effects/applyEffect";
 import { drawFromEncounterDeck } from "./encounterDeck";
 import { getCardDefinition } from "../data/cards";
 import { getScenarioByVillainName } from "../scenarios";
+import { advanceMainSchemeIfComplete } from "./mainScheme";
 
 export function resolveVillainActivation(
   state: GameState,
@@ -99,5 +100,11 @@ export function resolveVillainActivation(
     currentState = afterMinion;
     events = [...events, ...minionEvents];
   }
+  // Si el villano planificó (en alter ego) y con ello el plan principal llegó
+  // a su umbral, avanza a la siguiente etapa (planes multi-etapa como Klaw).
+  const { state: afterAdvance, events: advanceEvents } =
+    advanceMainSchemeIfComplete(currentState);
+  currentState = afterAdvance;
+  events = [...events, ...advanceEvents];
   return { state: currentState, events };
 }

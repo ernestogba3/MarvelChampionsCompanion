@@ -104,8 +104,8 @@ export const RHINO_SCENARIO: ScenarioDefinition = {
     EXPERT: { start: "II", final: "III" },
   },
   encounterDeck: RHINO_STANDARD_ENCOUNTER_DECK,
-  // Rino roba 1 carta de aumento por activación y su plan principal es de una
-  // sola etapa (completarlo = derrota). Comportamiento original intacto.
+  // Rino roba 1 carta de aumento por activación. Su plan principal es de una
+  // sola etapa (no hay additionalMainSchemeStages), así que completarlo es la
+  // derrota directamente. Comportamiento original intacto.
   boostCardsPerActivation: 1,
-  mainSchemeCompletionLoses: true,
 };

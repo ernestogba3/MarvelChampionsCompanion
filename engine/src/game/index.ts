@@ -23,6 +23,10 @@ export {
 } from "../persistence/serialize";
 export { advanceToNextStep } from "./advancePhase";
 export { addThreatStep } from "./addThreat";
+export {
+  advanceMainSchemeIfComplete,
+  isMainSchemeFinalStage,
+} from "./mainScheme";
 export { resolveVillainActivation } from "./villainActivation";
 export { dealPendingEncounterCards } from "./dealEncounterCards";
 export { describeCurrentStep } from "../explanations/stepGuide";

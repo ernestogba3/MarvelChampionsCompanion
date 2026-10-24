@@ -60,6 +60,11 @@ export interface VillainState {
   scheme: number;
   tough: boolean;
   attachments: VillainAttachmentState[];
+  // Represalia (Retaliate) N: cuando un jugador le inflige daño, recibe N de
+  // daño de vuelta. Opcional: sin valor (o 0) = sin Represalia. Ningún villano
+  // del Core Set la lleva impresa (a Klaw se la daría un acople, aún no
+  // modelado); el campo es infraestructura lista para villanos que la tengan.
+  retaliate?: number;
 }
 
 export interface SchemeState {
@@ -89,6 +94,10 @@ export interface MinionState {
   engagedWith: string | null;
   tough: boolean;
   guard: boolean;
+  // Represalia (Retaliate) N: cuando un jugador le inflige daño, recibe N de
+  // daño de vuelta. Opcional (infraestructura); los esbirros del Core Set no
+  // la llevan impresa.
+  retaliate?: number;
 }
 
 export interface NemesisSet {

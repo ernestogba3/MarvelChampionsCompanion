@@ -72,7 +72,17 @@ export interface StageProgression {
 export interface ScenarioDefinition {
   id: string;
   villainName: string;
+  /** Etapa INICIAL del plan principal. */
   mainScheme: ScenarioMainScheme;
+  /**
+   * Etapas SIGUIENTES del plan principal, en orden, para planes de varias
+   * etapas (p.ej. Klaw: "Reunión secreta" tras "Distribución clandestina").
+   * Cuando la etapa activa alcanza su umbral y hay una siguiente, el motor
+   * avanza a ella (advanceMainSchemeIfComplete); completar la ÚLTIMA etapa es
+   * la derrota. Omitir (o lista vacía) = plan de una sola etapa (Rino):
+   * completarla es la derrota directamente.
+   */
+  additionalMainSchemeStages?: ScenarioMainScheme[];
   /** Estadios en orden I → II → III. */
   stages: VillainStageDefinition[];
   progression: Record<Difficulty, StageProgression>;
@@ -84,13 +94,4 @@ export interface ScenarioDefinition {
    * lee este valor; por defecto 1 si el escenario no se encuentra.
    */
   boostCardsPerActivation: number;
-  /**
-   * Si completar el plan principal MODELADO por el motor supone la derrota.
-   * true en planes de una sola etapa (Rino). false en planes de varias etapas
-   * (Klaw: la etapa 1 "Distribución clandestina" no pierde al completarse,
-   * sino que avanza a "Reunión secreta"; la app guía ese avance y la 2ª etapa
-   * se gestiona manualmente). Evita que checkGameOutcome declare una derrota
-   * prematura. Por defecto true si el escenario no se encuentra.
-   */
-  mainSchemeCompletionLoses: boolean;
 }

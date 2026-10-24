@@ -50,11 +50,11 @@ const KLAW_STANDARD_ENCOUNTER_DECK: string[] = [
  *
  * MODO "ÁRBITRO" — divergencias conscientes y documentadas, porque el motor
  * todavía no modela varias mecánicas de Klaw:
- *   - Plan principal de 2 etapas: se modela SOLO la etapa 1 "Distribución
- *     clandestina" (umbral 6 ×jugadores). mainSchemeCompletionLoses=false
- *     evita la derrota prematura; la app guía el avance a "Reunión secreta"
- *     (01117, umbral 8 ×jugadores), cuya finalización —la derrota real— se
- *     gestiona manualmente.
+ *   - Plan principal de 2 etapas: YA se modela por completo. La etapa 1
+ *     "Distribución clandestina" (umbral 6 ×jugadores) avanza automáticamente
+ *     a "Reunión secreta" (01117, umbral 8 ×jugadores) al completarse, y
+ *     completar esta última es la derrota (ver additionalMainSchemeStages y
+ *     game/mainScheme.ts).
  *   - Interrupción obligada de Klaw (roba +1 carta de aumento): SÍ se modela
  *     vía boostCardsPerActivation=2.
  *   - Dureza del estadio III: SÍ (tough).
@@ -80,6 +80,18 @@ export const KLAW_SCENARIO: ScenarioDefinition = {
     escalationThreat: 1,
     threatToCompletePerPlayer: 6,
   },
+  // Etapa 2: al completar "Distribución clandestina" el plan avanza a
+  // "Reunión secreta" (umbral 8×jugadores); completar ESTA es la derrota.
+  additionalMainSchemeStages: [
+    {
+      id: "main-secret-rendezvous",
+      cardId: "01117",
+      name: "Reunión secreta",
+      startingThreat: 0,
+      escalationThreat: 1,
+      threatToCompletePerPlayer: 8,
+    },
+  ],
   stages: [
     {
       stage: "I",
@@ -123,6 +135,4 @@ export const KLAW_SCENARIO: ScenarioDefinition = {
   encounterDeck: KLAW_STANDARD_ENCOUNTER_DECK,
   // Interrupción obligada: Klaw roba 2 cartas de aumento por activación.
   boostCardsPerActivation: 2,
-  // Plan principal de varias etapas: completar la etapa 1 NO es derrota.
-  mainSchemeCompletionLoses: false,
 };

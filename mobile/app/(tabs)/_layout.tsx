@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function TabsLayout() {
+
     return (
         <Tabs
             screenOptions={{
@@ -16,37 +17,39 @@ export default function TabsLayout() {
                 name="game"
                 options={{
                     title: 'Partida',
-                    tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color as string} size={size} />,
                 }}
             />
             <Tabs.Screen
                 name="cards"
                 options={{
                     title: 'Cartas',
-                    tabBarIcon: ({ color, size }) => <Ionicons name="albums" color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color as string} size={size} />,
                 }}
             />
             <Tabs.Screen
                 name="rules"
                 options={{
                     title: 'Reglas',
-                    tabBarIcon: ({ color, size }) => <Ionicons name="book" color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color as string} size={size} />,
                 }}
             />
             <Tabs.Screen
                 name="collection"
                 options={{
                     title: 'Colección',
-                    tabBarIcon: ({ color, size }) => <Ionicons name="grid" color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color as string} size={size} />,
                 }}
             />
             <Tabs.Screen
                 name="more"
                 options={{
                     title: 'Más',
-                    tabBarIcon: ({ color, size }) => <Ionicons name="ellipsis-horizontal" color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color as string} size={size} />,
                 }}
             />
         </Tabs>
+
+
     );
 }

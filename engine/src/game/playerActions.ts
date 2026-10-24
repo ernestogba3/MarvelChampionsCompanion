@@ -5,6 +5,39 @@ import { advanceVillainStage } from "./villainStages";
 import { canRemoveThreatFromMainScheme } from "./sideSchemes";
 import { canAttackVillain } from "./combat";
 import { getScenarioByVillainName } from "../scenarios";
+import { isMainSchemeFinalStage } from "./mainScheme";
+
+/**
+ * Represalia (Retaliate) N: devuelve N de daño al jugador atacante. Se aplica
+ * cuando un jugador inflige daño a un villano/esbirro que tiene Represalia.
+ * n indefinido/0 o atacante desconocido → sin efecto. Infraestructura lista
+ * para cuando se añadan villanos/esbirros con esta keyword impresa.
+ */
+function applyRetaliate(
+  state: GameState,
+  attackerId: string,
+  n: number | undefined,
+): { state: GameState; events: GameEvent[] } {
+  if (n === undefined || n <= 0) {
+    return { state, events: [] };
+  }
+  return {
+    state: {
+      ...state,
+      players: state.players.map((p) =>
+        p.id === attackerId ? { ...p, health: Math.max(0, p.health - n) } : p,
+      ),
+    },
+    events: [
+      {
+        type: "DAMAGE_DEALT",
+        targetId: attackerId,
+        amount: n,
+        source: "retaliate",
+      },
+    ],
+  };
+}
 
 export function attackVillain(
   state: GameState,
@@ -52,19 +85,31 @@ export function attackVillain(
     };
   }
 
-  const { state: afterDamage, events } = dealDamageToVillain(state, amount);
+  const { state: afterDamage, events: damageEvents } = dealDamageToVillain(
+    state,
+    amount,
+  );
 
-  if (afterDamage.villain.health <= 0) {
+  // Represalia: el villano devuelve daño al atacante si la lleva. Ocurre al
+  // infligirle daño, antes de comprobar si ha sido derrotado.
+  const { state: afterRetaliate, events: retaliateEvents } = applyRetaliate(
+    afterDamage,
+    playerId,
+    afterDamage.villain.retaliate,
+  );
+  const events = [...damageEvents, ...retaliateEvents];
+
+  if (afterRetaliate.villain.health <= 0) {
     // Al reducir los PG a 0, si el villano NO está en su estadio final (según
     // la dificultad y la definición del escenario), avanza al siguiente
     // estadio. En el estadio final no se avanza: checkGameOutcome lo marca
     // como WIN. Genérico para cualquier villano registrado (ver scenarios/).
-    const scenario = getScenarioByVillainName(afterDamage.villain.name);
+    const scenario = getScenarioByVillainName(afterRetaliate.villain.name);
     if (scenario !== undefined) {
-      const finalStage = scenario.progression[afterDamage.difficulty].final;
-      if (afterDamage.villain.stage !== finalStage) {
+      const finalStage = scenario.progression[afterRetaliate.difficulty].final;
+      if (afterRetaliate.villain.stage !== finalStage) {
         const { state: afterStage, events: stageEvents } =
-          advanceVillainStage(afterDamage);
+          advanceVillainStage(afterRetaliate);
         return {
           state: afterStage,
           events: [...events, ...stageEvents],
@@ -73,7 +118,7 @@ export function attackVillain(
     }
   }
 
-  return { state: afterDamage, events };
+  return { state: afterRetaliate, events };
 }
 
 export type GameOutcome = "ONGOING" | "WIN" | "LOSS";
@@ -82,16 +127,16 @@ export function checkGameOutcome(state: GameState): GameOutcome {
   const scenario = getScenarioByVillainName(state.villain.name);
   const mainScheme = state.schemes.find((s) => s.isMain);
 
-  // Completar el plan principal solo es derrota si el escenario lo indica. En
-  // planes de una sola etapa (Rino) sí; en planes de varias etapas (Klaw) la
-  // etapa 1 avanza a la 2 en vez de perder, así que no disparamos derrota aquí
-  // (la 2ª etapa se gestiona manualmente). Sin escenario registrado, se
-  // mantiene el comportamiento original (completar = derrota).
-  const mainSchemeCompletionLoses = scenario?.mainSchemeCompletionLoses ?? true;
+  // Completar el plan principal es derrota solo si está en su ETAPA FINAL. En
+  // planes de varias etapas (Klaw) una etapa intermedia completada ya habrá
+  // avanzado a la siguiente (ver game/mainScheme.ts), así que no debería
+  // llegar aquí completa; isMainSchemeFinalStage lo cubre por si acaso. Sin
+  // escenario registrado se mantiene el comportamiento original (completar =
+  // derrota), porque isMainSchemeFinalStage devuelve true en ese caso.
   if (
-    mainSchemeCompletionLoses &&
     mainScheme &&
-    mainScheme.threat >= mainScheme.threatToComplete
+    mainScheme.threat >= mainScheme.threatToComplete &&
+    isMainSchemeFinalStage(state)
   ) {
     // TODO: TC-014 — verificar el momento exacto en que se comprueba esto contra el reglamento físico
     return "LOSS";
@@ -117,6 +162,11 @@ export function attackMinion(
   state: GameState,
   minionId: string,
   amount: number,
+  // Jugador que ataca. Opcional por compatibilidad: solo hace falta para
+  // aplicar Represalia del esbirro (devolverle daño). Las llamadas existentes
+  // que no lo pasan no activan Represalia (ningún esbirro del Core Set la
+  // lleva impresa).
+  attackerId?: string,
 ): { state: GameState; events: GameEvent[] } {
   const minion = state.minions.find((m) => m.id === minionId);
   if (!minion) {
@@ -134,27 +184,32 @@ export function attackMinion(
     };
   }
   const newHealth = Math.max(0, minion.health - amount);
-  const events: GameEvent[] = [
+  let next: GameState =
+    newHealth <= 0
+      ? {
+          ...state,
+          minions: state.minions.filter((m) => m.id !== minionId),
+        }
+      : {
+          ...state,
+          minions: state.minions.map((m) =>
+            m.id === minionId ? { ...m, health: newHealth } : m,
+          ),
+        };
+  let events: GameEvent[] = [
     { type: "DAMAGE_DEALT", targetId: minion.id, amount, source: "player" },
   ];
-  if (newHealth <= 0) {
-    return {
-      state: {
-        ...state,
-        minions: state.minions.filter((m) => m.id !== minionId),
-      },
-      events,
-    };
+  // Represalia del esbirro: solo si conocemos al atacante y el esbirro la lleva.
+  if (attackerId !== undefined) {
+    const { state: afterRetaliate, events: retaliateEvents } = applyRetaliate(
+      next,
+      attackerId,
+      minion.retaliate,
+    );
+    next = afterRetaliate;
+    events = [...events, ...retaliateEvents];
   }
-  return {
-    state: {
-      ...state,
-      minions: state.minions.map((m) =>
-        m.id === minionId ? { ...m, health: newHealth } : m,
-      ),
-    },
-    events,
-  };
+  return { state: next, events };
 }
 
 export function thwartScheme(

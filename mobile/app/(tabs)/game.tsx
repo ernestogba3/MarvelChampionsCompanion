@@ -252,22 +252,43 @@ export default function GameScreen() {
                     if (encounterPicks.length !== faceDown) {
                         return;
                     }
-                    const resolved = runAndLog(
+                    const { state: resolved, events: revealEvents } = runAndLog(
                         revealPendingCardsForPlayer,
                         state,
                         revealingPlayer.id,
                         encounterPicks.length > 0 ? encounterPicks : undefined,
-                    ).state;
+                    );
                     setEncounterPicks([]);
-                    const stillPending = resolved.players.some(
+
+                    // Oleada: por cada carta revelada con Oleada impresa, el
+                    // jugador revela una carta de encuentro adicional. Repartimos
+                    // esas cartas boca abajo al mismo jugador y seguimos en el
+                    // paso de Revelar (la UI pedirá elegir cuáles robó).
+                    const surgeCount = revealEvents.filter(
+                        (e: any) => e.type === 'CARD_GAINED_SURGE',
+                    ).length;
+                    let afterSurge = resolved;
+                    if (surgeCount > 0) {
+                        const queued: GameState = {
+                            ...resolved,
+                            pendingEncounterDeals: Array.from(
+                                { length: surgeCount },
+                                () => revealingPlayer.id,
+                            ),
+                        };
+                        afterSurge = runAndLog(dealPendingEncounterCards, queued).state;
+                    }
+
+                    const stillPending = afterSurge.players.some(
                         (p) => p.faceDownEncounterCards.length > 0,
                     );
                     if (stillPending) {
-                        // Queda otro jugador por revelar: se guarda pero NO se avanza de paso.
-                        await persist(resolved);
+                        // Queda otro jugador (o cartas de Oleada) por revelar: se
+                        // guarda pero NO se avanza de paso.
+                        await persist(afterSurge);
                         return;
                     }
-                    next = resolved;
+                    next = afterSurge;
                 }
             }
         }
