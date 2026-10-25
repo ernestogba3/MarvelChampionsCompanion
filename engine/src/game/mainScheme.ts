@@ -64,7 +64,8 @@ export function accelerationIconsInPlay(state: GameState): number {
 
 /**
  * Amenaza que se añade al plan principal en el paso 1 de la fase del villano:
- *   - la aceleración impresa ×nº de jugadores, o la variable "X = enemigos con
+ *   - la aceleración impresa ×nº de jugadores (o fija si la carta no lleva el
+ *     icono [per_hero], como Fuga de prisión), o la variable "X = enemigos con
  *     el rasgo" (Nube de mutágeno), que NO escala por jugadores;
  *   - + los tokens de aceleración (mazo de encuentros agotado), fijos;
  *   - + 1 por cada icono de Aceleración de los planes en juego.
@@ -72,11 +73,14 @@ export function accelerationIconsInPlay(state: GameState): number {
 export function mainSchemeThreatPerRound(state: GameState): number {
   const main = state.schemes.find((s) => s.isMain);
   if (main === undefined) return 0;
-  const trait = currentMainSchemeDefinition(state)?.escalationPerEnemyWithTrait;
+  const def = currentMainSchemeDefinition(state);
+  const trait = def?.escalationPerEnemyWithTrait;
   const escalation =
     trait !== undefined
       ? countEnemiesWithTrait(state, trait)
-      : main.escalationThreat * state.players.length;
+      : def?.escalationFixed === true
+        ? main.escalationThreat
+        : main.escalationThreat * state.players.length;
   return escalation + main.accelerationTokens + accelerationIconsInPlay(state);
 }
 

@@ -23,6 +23,8 @@ export type {
   ScenarioEnvironmentDefinition,
   EnvironmentFaceDefinition,
   StageProgression,
+  ScenarioVillainDefinition,
+  SignatureSchemeDefinition,
 } from "../scenarios";
 export {
   activeVillainFace,
@@ -33,6 +35,16 @@ export {
 } from "./villainFaces";
 export type { VillainFace } from "./villainFaces";
 export { putEncounterMinionIntoPlay } from "./putCardIntoPlay";
+export {
+  isMultiVillain,
+  allVillains,
+  findVillain,
+  ownSideScheme,
+  setActiveVillain,
+  moveActiveVillain,
+  addThreatToScheme,
+} from "./multiVillain";
+export { villainAttacks, villainSchemes } from "./villainActivation";
 export {
   mainSchemeThreatPerRound,
   countEnemiesWithTrait,
@@ -64,6 +76,9 @@ export type {
   PlayerForm,
   CardFace,
   EnvironmentState,
+  ReserveVillainState,
+  VillainState,
+  SchemeState,
 } from "../domain/types";
 export type { RuleExplanation } from "../explanations/types";
 export { revealPendingCardsForPlayer } from "./revealEncounterCards";

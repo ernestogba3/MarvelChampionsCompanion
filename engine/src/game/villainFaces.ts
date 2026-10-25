@@ -2,11 +2,12 @@ import type {
   CardFace,
   EnvironmentState,
   GameState,
+  VillainState,
 } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import type { Effect } from "../effects/types";
 import { applyEffects } from "../effects/applyEffect";
-import { getScenarioForState } from "../scenarios";
+import { getScenarioForState, villainDefinition } from "../scenarios";
 import type {
   EnvironmentFaceDefinition,
   ScenarioDefinition,
@@ -30,25 +31,48 @@ export type VillainFace = VillainFaceAbilities & {
 
 /**
  * Cara de un estadio: la B (flipSide) si se pide y existe; si no, la A, que
- * son los propios campos del estadio con el nombre del villano del escenario.
+ * son los propios campos del estadio con el nombre base del villano.
  */
 export function stageFace(
-  scenario: ScenarioDefinition,
+  baseName: string,
   stage: VillainStageDefinition,
   face: CardFace,
 ): { def: VillainFace; name: string } {
   if (face === "B" && stage.flipSide !== undefined) {
     return { def: stage.flipSide, name: stage.flipSide.name };
   }
-  return { def: stage, name: scenario.villainName };
+  return { def: stage, name: baseName };
 }
 
-/** Cara visible del villano en juego, o undefined si no hay escenario. */
-export function activeVillainFace(state: GameState): VillainFace | undefined {
+/**
+ * Definición del estadio en juego de un villano (el activo o uno en reserva
+ * en los escenarios con varios villanos), con el nombre base del villano.
+ */
+function villainStage(
+  state: GameState,
+  villain: VillainState,
+): { stage: VillainStageDefinition; name: string } | undefined {
   const scenario = getScenarioForState(state);
-  const stage = scenario?.stages.find((s) => s.stage === state.villain.stage);
-  if (scenario === undefined || stage === undefined) return undefined;
-  return stageFace(scenario, stage, state.villain.face ?? "A").def;
+  if (scenario === undefined) return undefined;
+  const def = villainDefinition(scenario, villain.villainId);
+  const stage = def?.stages.find((s) => s.stage === villain.stage);
+  if (def === undefined || stage === undefined) return undefined;
+  return { stage, name: def.name };
+}
+
+/** Cara visible de un villano en juego, o undefined si no hay escenario. */
+export function villainFaceOf(
+  state: GameState,
+  villain: VillainState,
+): VillainFace | undefined {
+  const found = villainStage(state, villain);
+  if (found === undefined) return undefined;
+  return stageFace(found.name, found.stage, villain.face ?? "A").def;
+}
+
+/** Cara visible del villano activo, o undefined si no hay escenario. */
+export function activeVillainFace(state: GameState): VillainFace | undefined {
+  return villainFaceOf(state, state.villain);
 }
 
 /**
@@ -142,18 +166,18 @@ export function flipVillainAndEnvironment(state: GameState): {
   events: GameEvent[];
 } {
   const scenario = getScenarioForState(state);
-  const stage = scenario?.stages.find((s) => s.stage === state.villain.stage);
+  const found = villainStage(state, state.villain);
   const env = state.environment;
   if (
     scenario === undefined ||
-    stage?.flipSide === undefined ||
+    found?.stage.flipSide === undefined ||
     env === undefined
   ) {
     return { state, events: [] };
   }
 
   const newFace: CardFace = (state.villain.face ?? "A") === "A" ? "B" : "A";
-  const { def, name } = stageFace(scenario, stage, newFace);
+  const { def, name } = stageFace(found.name, found.stage, newFace);
   const envDef = environmentFace(scenario, newFace);
   if (envDef === undefined) {
     return { state, events: [] };

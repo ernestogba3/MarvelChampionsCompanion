@@ -1,9 +1,14 @@
-import type { ScenarioDefinition } from "./types";
+import type {
+  ScenarioDefinition,
+  SignatureSchemeDefinition,
+  VillainStageDefinition,
+} from "./types";
 import { RHINO_SCENARIO } from "./rhino";
 import { KLAW_SCENARIO } from "./klaw";
 import { ULTRON_SCENARIO } from "./ultron";
 import { RISKY_BUSINESS_SCENARIO } from "./riskyBusiness";
 import { MUTAGEN_FORMULA_SCENARIO } from "./mutagenFormula";
+import { WRECKING_CREW_SCENARIO } from "./wreckingCrew";
 
 export type {
   ScenarioDefinition,
@@ -17,6 +22,10 @@ export type {
   ScenarioEnvironmentDefinition,
   EnvironmentFaceDefinition,
   StageProgression,
+  MainSchemeAfterThreatStepEffect,
+  SignatureOverflowEffect,
+  SignatureSchemeDefinition,
+  ScenarioVillainDefinition,
 } from "./types";
 
 // Registro de escenarios disponibles, por id. Para añadir un villano nuevo:
@@ -27,6 +36,7 @@ const SCENARIOS: Record<string, ScenarioDefinition> = {
   [ULTRON_SCENARIO.id]: ULTRON_SCENARIO,
   [RISKY_BUSINESS_SCENARIO.id]: RISKY_BUSINESS_SCENARIO,
   [MUTAGEN_FORMULA_SCENARIO.id]: MUTAGEN_FORMULA_SCENARIO,
+  [WRECKING_CREW_SCENARIO.id]: WRECKING_CREW_SCENARIO,
 };
 
 /** Busca un escenario por su id (la clave estable: "rhino", "klaw", …). */
@@ -62,6 +72,34 @@ export function getScenarioForState(state: {
     return getScenario(state.scenarioId);
   }
   return getScenarioByVillainName(state.villain.name);
+}
+
+/**
+ * Datos de UN villano del escenario: el de id `villainId` en un escenario con
+ * varios villanos, o el único villano (nombre, estadios y mazo del propio
+ * escenario) en los demás. Id desconocido → undefined.
+ */
+export function villainDefinition(
+  scenario: ScenarioDefinition,
+  villainId?: string,
+):
+  | {
+      id: string;
+      name: string;
+      stages: VillainStageDefinition[];
+      encounterDeck: string[];
+      signatureScheme?: SignatureSchemeDefinition;
+    }
+  | undefined {
+  if (scenario.villains !== undefined) {
+    return scenario.villains.find((v) => v.id === villainId);
+  }
+  return {
+    id: scenario.id,
+    name: scenario.villainName,
+    stages: scenario.stages,
+    encounterDeck: scenario.encounterDeck,
+  };
 }
 
 /** Todos los escenarios registrados (p.ej. para que la app liste villanos). */

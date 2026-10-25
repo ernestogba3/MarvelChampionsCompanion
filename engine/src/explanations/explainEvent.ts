@@ -202,6 +202,36 @@ export function explainEvent(event: GameEvent): RuleExplanation {
         reason:
           "Su Interrupción obligada sustituye el daño entero; el que sobra se pierde.",
       };
+    case "ACTIVE_VILLAIN_CHANGED":
+      return {
+        title: `Villano activo: ${event.villainName}`,
+        description:
+          event.fromVillainId === event.toVillainId
+            ? `${event.villainName} conserva el contador activo.`
+            : `El contador activo pasa a ${event.villainName}.`,
+        reason:
+          "Solo el villano activo se activa en la fase del villano; sus cartas de aumento y de encuentro salen de su mazo.",
+        ...(event.tiedWith.length > 0 && {
+          nextStep:
+            "Hay empate: el jugador inicial puede dar el contador activo a otro de los villanos empatados.",
+        }),
+      };
+    case "VILLAIN_DEFEATED":
+      return {
+        title: `${event.villainName} derrotado`,
+        description: `${event.villainName} sale de juego junto con su plan secundario.`,
+        reason:
+          "En The Wrecking Crew se gana al derrotar a los cuatro villanos; las cartas de su mazo que estén en juego siguen en juego.",
+      };
+    case "SIGNATURE_SCHEME_TRIGGERED":
+      return {
+        title: `${event.name} se dispara`,
+        description: event.guided
+          ? `El plan llega a su umbral: resuelve su efecto con la carta. Se queda en ${event.resetTo} de amenaza.`
+          : `El plan llega a su umbral y resuelve su efecto. Se queda en ${event.resetTo} de amenaza.`,
+        reason:
+          "Los planes propios de cada villano disparan su Respuesta obligada al llegar a 10 de amenaza.",
+      };
     case "MINION_ENTERED_PLAY":
       return {
         title: "Esbirro en juego",

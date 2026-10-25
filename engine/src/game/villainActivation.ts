@@ -1,16 +1,20 @@
-import type { GameState } from "../domain/types";
+import type { GameState, VillainState } from "../domain/types";
 import type { GameEvent } from "../events/types";
+import type { Effect } from "../effects/types";
 import { applyEffects } from "../effects/applyEffect";
 import { drawFromEncounterDeck } from "./encounterDeck";
 import { getCardDefinition } from "../data/cards";
 import { getScenarioForState } from "../scenarios";
 import { advanceMainSchemeIfComplete } from "../game/mainScheme";
-import { activeVillainFace, adjustEnvironmentCounters } from "./villainFaces";
+import { adjustEnvironmentCounters, villainFaceOf } from "./villainFaces";
+import { ownSideScheme, resolveSignatureSchemeOverflows } from "./multiVillain";
 
 /**
  * Roba y descarta las cartas de aumento de UNA activación y devuelve la suma
  * de sus iconos. Casi todos los villanos roban 1; Klaw roba 2 (Interrupción
- * obligada). Se lee del escenario; por defecto 1 si no está registrado.
+ * obligada). Se lee del escenario; por defecto 1 si no está registrado. Salen
+ * siempre del mazo de encuentros del villano activo (en The Wrecking Crew,
+ * aunque ataque otro villano).
  */
 function drawBoostCards(state: GameState): {
   state: GameState;
@@ -46,6 +50,191 @@ function drawBoostCards(state: GameState): {
   return { state: currentState, events, boostValue };
 }
 
+export interface VillainActOptions {
+  /** +N de ATQ o PLA para esta activación (p.ej. "+2 ATQ si es Resistente"). */
+  bonus?: number;
+  /** Si recibe carta de aumento (por defecto sí). */
+  drawBoost?: boolean;
+  /**
+   * Si el jugador recibe una carta de encuentro por este ataque. La activación
+   * de la fase del villano la reparte; los ataques de tratados, no.
+   */
+  queueEncounterCard?: boolean;
+}
+
+/**
+ * Un villano (el activo o, en The Wrecking Crew, cualquiera) ataca a un
+ * jugador. Resuelve las habilidades de su cara: la Interrupción de Norman que
+ * sustituye el ataque por Infamia, +N ATQ si no es defendido (el motor no
+ * modela defensores), daño extra tras atacar y amenaza tras un ataque con
+ * daño. Devuelve el daño del ataque (0 si se sustituyó).
+ */
+export function villainAttacks(
+  state: GameState,
+  villain: VillainState,
+  playerId: string,
+  options: VillainActOptions = {},
+): { state: GameState; events: GameEvent[]; damage: number } {
+  const face = villainFaceOf(state, villain);
+  let currentState = state;
+  let events: GameEvent[] = [];
+
+  // Interrupción obligada que sustituye el ataque por colocar contadores
+  // (Norman Osborn). Como el ataque no llega a ocurrir, no hay aumento.
+  const replaced = face?.attackPlacesEnvironmentCounters ?? 0;
+  if (replaced > 0 && currentState.environment !== undefined) {
+    events.push({
+      type: "VILLAIN_ACTIVATION_REPLACED",
+      villainName: villain.name,
+      replaced: "ATTACK",
+      counterName: currentState.environment.counterName,
+      delta: replaced,
+    });
+    const counters = adjustEnvironmentCounters(currentState, replaced);
+    currentState = counters.state;
+    events = [...events, ...counters.events];
+    if (options.queueEncounterCard === true) {
+      // El jugador recibe su carta de encuentro igual que si le atacara.
+      currentState = applyEffects(currentState, [
+        { type: "QUEUE_ENCOUNTER_CARD", playerId },
+      ]).state;
+    }
+    return { state: currentState, events, damage: 0 };
+  }
+
+  let boostValue = 0;
+  if (options.drawBoost !== false) {
+    const boost = drawBoostCards(currentState);
+    currentState = boost.state;
+    events = [...events, ...boost.events];
+    boostValue = boost.boostValue;
+  }
+
+  const amount =
+    villain.attack +
+    boostValue +
+    (options.bonus ?? 0) +
+    (face?.attackBonusIfUndefended ?? 0);
+  const effects: Effect[] = [
+    {
+      type: "DEAL_DAMAGE",
+      target: { kind: "PLAYER", playerId },
+      amount,
+      source: "villain",
+    },
+  ];
+  if (options.queueEncounterCard === true) {
+    effects.push({ type: "QUEUE_ENCOUNTER_CARD", playerId });
+  }
+  const attacked = applyEffects(currentState, effects);
+  currentState = attacked.state;
+  events = [
+    ...events,
+    { type: "VILLAIN_ATTACKED", playerId, amount },
+    ...attacked.events,
+  ];
+
+  // Respuesta obligada "después de que el villano ataque y te inflija daño,
+  // coloca N de amenaza sobre el plan principal" (La fórmula mutagénica).
+  const threatAfter = face?.threatAfterDamagingAttack ?? 0;
+  // Respuesta obligada "después de que te ataque, inflige N de daño a cada
+  // personaje que controles" (Bola de Trueno; a la identidad).
+  const damageAfter = face?.damageAfterAttack ?? 0;
+  const after: Effect[] = [];
+  if (amount > 0 && threatAfter > 0) {
+    after.push({
+      type: "ADD_THREAT",
+      target: { kind: "MAIN_SCHEME" },
+      amount: threatAfter,
+    });
+  }
+  if (damageAfter > 0) {
+    after.push({
+      type: "DEAL_DAMAGE",
+      target: { kind: "PLAYER", playerId },
+      amount: damageAfter,
+      source: villain.name,
+    });
+  }
+  if (after.length > 0) {
+    const applied = applyEffects(currentState, after);
+    currentState = applied.state;
+    events = [...events, ...applied.events];
+  }
+  return { state: currentState, events, damage: amount };
+}
+
+/**
+ * Un villano maquina. Resuelve las habilidades de su cara: la Interrupción del
+ * Duende Verde que la sustituye por quitar Locura, y "coloca la amenaza en su
+ * plan secundario en vez de en el principal" (The Wrecking Crew, que además
+ * puede disparar el efecto de ese plan al llegar a 10). Devuelve la amenaza
+ * colocada (0 si se sustituyó).
+ */
+export function villainSchemes(
+  state: GameState,
+  villain: VillainState,
+  options: VillainActOptions = {},
+): { state: GameState; events: GameEvent[]; threat: number } {
+  const face = villainFaceOf(state, villain);
+  let currentState = state;
+  let events: GameEvent[] = [];
+
+  const replaced = face?.schemeRemovesEnvironmentCounters ?? 0;
+  if (replaced > 0 && currentState.environment !== undefined) {
+    events.push({
+      type: "VILLAIN_ACTIVATION_REPLACED",
+      villainName: villain.name,
+      replaced: "SCHEME",
+      counterName: currentState.environment.counterName,
+      delta: -replaced,
+    });
+    const counters = adjustEnvironmentCounters(currentState, -replaced);
+    return {
+      state: counters.state,
+      events: [...events, ...counters.events],
+      threat: 0,
+    };
+  }
+
+  let boostValue = 0;
+  if (options.drawBoost !== false) {
+    const boost = drawBoostCards(currentState);
+    currentState = boost.state;
+    events = [...events, ...boost.events];
+    boostValue = boost.boostValue;
+  }
+
+  const amount = villain.scheme + boostValue + (options.bonus ?? 0);
+  const own =
+    face?.schemesOnOwnSideScheme === true
+      ? ownSideScheme(currentState, villain.villainId)
+      : undefined;
+  const target = own ?? currentState.schemes.find((s) => s.isMain)!;
+  const placed = applyEffects(currentState, [
+    {
+      type: "ADD_THREAT",
+      target:
+        own !== undefined
+          ? { kind: "SCHEME", schemeId: own.id }
+          : { kind: "MAIN_SCHEME" },
+      amount,
+    },
+  ]);
+  currentState = placed.state;
+  events = [
+    ...events,
+    { type: "VILLAIN_SCHEMED", schemeId: target.id, amount },
+    ...placed.events,
+  ];
+  const overflow = resolveSignatureSchemeOverflows(currentState);
+  return {
+    state: overflow.state,
+    events: [...events, ...overflow.events],
+    threat: amount,
+  };
+}
+
 export function resolveVillainActivation(
   state: GameState,
   playerId: string,
@@ -54,110 +243,17 @@ export function resolveVillainActivation(
   if (!player) {
     throw new Error(`Jugador no encontrado: ${playerId}`);
   }
-  let currentState = state;
-  let events: GameEvent[] = [];
 
-  // Interrupciones obligadas que SUSTITUYEN la activación por mover contadores
-  // del Entorno (Negocios arriesgados): Norman no ataca, coloca Infamia; el
-  // Duende Verde no maquina, quita Locura. Como el ataque/plan no llega a
-  // ocurrir, no se le da carta de aumento.
-  const face = activeVillainFace(currentState);
-  const replacedAttack =
+  // El villano activo ataca al jugador en forma de Héroe (que recibe su carta
+  // de encuentro) o maquina si está en alter ego.
+  const acted =
     player.form === "HERO"
-      ? (face?.attackPlacesEnvironmentCounters ?? 0)
-      : 0;
-  const replacedScheme =
-    player.form !== "HERO"
-      ? (face?.schemeRemovesEnvironmentCounters ?? 0)
-      : 0;
-
-  if (
-    (replacedAttack > 0 || replacedScheme > 0) &&
-    currentState.environment !== undefined
-  ) {
-    const delta = replacedAttack > 0 ? replacedAttack : -replacedScheme;
-    events.push({
-      type: "VILLAIN_ACTIVATION_REPLACED",
-      villainName: currentState.villain.name,
-      replaced: replacedAttack > 0 ? "ATTACK" : "SCHEME",
-      counterName: currentState.environment.counterName,
-      delta,
-    });
-    const { state: afterCounters, events: counterEvents } =
-      adjustEnvironmentCounters(currentState, delta);
-    currentState = afterCounters;
-    events = [...events, ...counterEvents];
-    if (replacedAttack > 0) {
-      // El jugador en forma de Héroe recibe su carta de encuentro igual que
-      // cuando el villano ataca (mismo criterio que la rama de ataque).
-      const { state: afterQueue } = applyEffects(currentState, [
-        { type: "QUEUE_ENCOUNTER_CARD", playerId },
-      ]);
-      currentState = afterQueue;
-    }
-  } else {
-    const {
-      state: afterBoost,
-      events: boostEvents,
-      boostValue,
-    } = drawBoostCards(currentState);
-    currentState = afterBoost;
-    events = [...events, ...boostEvents];
-
-    if (player.form === "HERO") {
-      const amount = currentState.villain.attack + boostValue;
-      const { state: afterEffects, events: effectEvents } = applyEffects(
-        currentState,
-        [
-          {
-            type: "DEAL_DAMAGE",
-            target: { kind: "PLAYER", playerId },
-            amount,
-            source: "villain",
-          },
-          { type: "QUEUE_ENCOUNTER_CARD", playerId },
-        ],
-      );
-      currentState = afterEffects;
-      events = [
-        ...events,
-        { type: "VILLAIN_ATTACKED", playerId, amount },
-        ...effectEvents,
-      ];
-      // Respuesta obligada "después de que el villano ataque y te inflija
-      // daño, coloca N de amenaza sobre el plan principal" (La fórmula
-      // mutagénica). El motor no modela defensores: el daño del ataque es
-      // el ATQ + aumento.
-      const threatAfter = face?.threatAfterDamagingAttack ?? 0;
-      if (amount > 0 && threatAfter > 0) {
-        const { state: afterThreat, events: threatEvents } = applyEffects(
-          currentState,
-          [
-            {
-              type: "ADD_THREAT",
-              target: { kind: "MAIN_SCHEME" },
-              amount: threatAfter,
-            },
-          ],
-        );
-        currentState = afterThreat;
-        events = [...events, ...threatEvents];
-      }
-    } else {
-      const mainScheme = currentState.schemes.find((s) => s.isMain)!;
-      const amount = currentState.villain.scheme + boostValue;
-      const { state: afterEffects, events: effectEvents } = applyEffects(
-        currentState,
-        [{ type: "ADD_THREAT", target: { kind: "MAIN_SCHEME" }, amount }],
-      );
-      currentState = afterEffects;
-      events = [
-        ...events,
-        { type: "VILLAIN_SCHEMED", schemeId: mainScheme.id, amount },
-        ...effectEvents,
-      ];
-    }
-  }
+      ? villainAttacks(state, state.villain, playerId, {
+          queueEncounterCard: true,
+        })
+      : villainSchemes(state, state.villain);
+  let currentState = acted.state;
+  let events = acted.events;
 
   const engagedMinions = currentState.minions.filter(
     (m) => m.engagedWith === playerId,

@@ -36,7 +36,9 @@ export interface PlayerState {
   discardPile?: string[]; // pila de descarte (visible, boca arriba)
 }
 
-export type VillainStage = "I" | "II" | "III";
+// I/II/III en los escenarios normales; A/B en The Wrecking Crew (versión A =
+// Estándar, versión B = Experto, un único estadio por villano).
+export type VillainStage = "I" | "II" | "III" | "A" | "B";
 
 // Cara visible de una carta de dos caras (villano o Entorno de Negocios
 // arriesgados): "A" = cara "a" de marvelcdb (Norman Osborn / Empresa
@@ -56,6 +58,9 @@ export interface VillainAttachmentState {
 }
 
 export interface VillainState {
+  // Id del villano dentro de un escenario con varios villanos ("wrecker",
+  // "thunderball"…). undefined en los escenarios de un solo villano.
+  villainId?: string;
   cardId: string;
   name: string;
   stage: VillainStage;
@@ -110,6 +115,23 @@ export interface SchemeState {
   // jugadores) a la amenaza que se añade cada ronda. Solo aplica al plan
   // principal.
   accelerationTokens: number;
+  // Plan secundario PROPIO de un villano (The Wrecking Crew: "Plan
+  // secundario de Destructor"). Recibe la amenaza cuando ese villano maquina,
+  // no sale de juego al quedarse sin amenaza mientras el villano esté en juego
+  // y se retira cuando el villano es derrotado. undefined = plan normal.
+  villainId?: string;
+}
+
+/**
+ * Villano en juego que NO es el activo (escenarios con varios villanos), con
+ * su propio mazo de encuentros y descarte. El villano activo vive siempre en
+ * GameState.villain / encounterDeck / encounterDiscard; al cambiar el
+ * contador activo se intercambian (game/multiVillain.ts).
+ */
+export interface ReserveVillainState {
+  villain: VillainState;
+  encounterDeck: string[];
+  encounterDiscard: string[];
 }
 
 export interface MinionState {
@@ -166,6 +188,10 @@ export interface GameState {
   // Entorno con contadores en juego (Negocios arriesgados). Ausente en los
   // escenarios sin él.
   environment?: EnvironmentState;
+  // Escenarios con varios villanos a la vez (The Wrecking Crew): los villanos
+  // en juego que no tienen el contador activo. El activo es `villain`.
+  // Ausente en los escenarios de un solo villano.
+  reserveVillains?: ReserveVillainState[];
   round: number;
   phase: GamePhase;
   difficulty: Difficulty;

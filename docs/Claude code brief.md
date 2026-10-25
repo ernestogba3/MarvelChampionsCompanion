@@ -69,10 +69,13 @@ Klaw, Ultron ya están hechos y sirven de plantilla).
 
 ## PARA y pregunta al humano cuando
 
-- El villano necesite un **sistema de motor que no existe** (ej.: escenario SIN
-  plan principal como The Wrecking Crew; sets de némesis/obligaciones; recursos/
-  agotar; contadores de escenario; efectos de entorno nuevos). Describe qué
-  falta y espera decisión de alcance (árbitro vs construir el sistema).
+- El villano necesite un **sistema de motor que no existe** (ej.: sets de
+  némesis/obligaciones; recursos/agotar; efectos de entorno nuevos; un
+  escenario con reglas especiales en un inserto del pack). Antes de decidir,
+  revisa `docs/Content roadmap.md`: varios sistemas ya existen (varios villanos
+  con contador activo, villano de dos caras + Entorno con contadores, planes
+  propios…). Describe qué falta y espera decisión de alcance (árbitro vs
+  construir el sistema).
 - El pack sea en realidad un **set modular**, no un escenario de villano
   (sospechosos: Ronan, The Hood). Confírmalo y pregunta cómo tratarlo.
 - Los **datos no se puedan verificar** (sin red a marvelcdb).

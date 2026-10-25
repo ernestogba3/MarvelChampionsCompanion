@@ -7,6 +7,12 @@ import { canAttackVillain } from "./combat";
 import { getScenarioForState } from "../scenarios";
 import { isMainSchemeFinalStage } from "./mainScheme";
 import { replaceVillainDamage } from "./villainFaces";
+import {
+  findVillain,
+  isMultiVillain,
+  removeDefeatedActiveVillain,
+  withVillainActive,
+} from "./multiVillain";
 
 /**
  * Represalia (Retaliate) N: devuelve N de daño al jugador atacante. Se aplica
@@ -40,7 +46,54 @@ function applyRetaliate(
   };
 }
 
+/**
+ * Un jugador ataca a un villano con `amount` de daño. Por defecto al villano
+ * activo; en los escenarios con varios villanos (The Wrecking Crew) se puede
+ * elegir cualquiera con `villainId` ("los jugadores pueden atacar a cualquier
+ * villano"). Si un villano del grupo cae en su estadio final y quedan otros,
+ * sale de juego con su plan propio; si cae el activo, el contador activo pasa
+ * al villano con más amenaza en su plan.
+ */
 export function attackVillain(
+  state: GameState,
+  playerId: string,
+  amount: number,
+  villainId?: string,
+): { state: GameState; events: GameEvent[] } {
+  if (!isMultiVillain(state)) {
+    return attackActiveVillain(state, playerId, amount);
+  }
+  const activeId = state.villain.villainId;
+  const targetId = villainId ?? activeId;
+  if (targetId === undefined || findVillain(state, targetId) === undefined) {
+    return { state, events: [] };
+  }
+  const attackedActive = targetId === activeId;
+  return withVillainActive(state, targetId, (s) => {
+    const result = attackActiveVillain(s, playerId, amount);
+    const finalStage = getScenarioForState(result.state)?.progression[
+      result.state.difficulty
+    ].final;
+    if (
+      result.state.villain.health > 0 ||
+      result.state.villain.stage !== finalStage
+    ) {
+      return result;
+    }
+    // Derrotado: si era el activo, el contador pasa al de más amenaza; si
+    // no, vuelve al que lo tenía antes del ataque.
+    const removed = removeDefeatedActiveVillain(
+      result.state,
+      attackedActive ? undefined : activeId,
+    );
+    return {
+      state: removed.state,
+      events: [...result.events, ...removed.events],
+    };
+  });
+}
+
+function attackActiveVillain(
   state: GameState,
   playerId: string,
   amount: number,
@@ -175,7 +228,13 @@ export function checkGameOutcome(state: GameState): GameOutcome {
       : state.difficulty === "EXPERT"
         ? "III"
         : "II";
-  if (state.villain.stage === finalStage && state.villain.health <= 0) {
+  // Con varios villanos (The Wrecking Crew) solo es victoria cuando cae el
+  // último: los anteriores salen de juego (reserveVillains se vacía).
+  if (
+    state.villain.stage === finalStage &&
+    state.villain.health <= 0 &&
+    (state.reserveVillains?.length ?? 0) === 0
+  ) {
     return "WIN";
   }
 
@@ -271,7 +330,10 @@ export function thwartScheme(
   const events: GameEvent[] = [
     { type: "THREAT_REMOVED", schemeId, amount: removed },
   ];
-  if (!scheme.isMain && newThreat === 0) {
+  // Un plan secundario sin amenaza se descarta, salvo los planes propios de un
+  // villano (The Wrecking Crew): "no puede salir de juego mientras [su
+  // villano] esté en juego".
+  if (!scheme.isMain && newThreat === 0 && scheme.villainId === undefined) {
     return {
       state: {
         ...state,

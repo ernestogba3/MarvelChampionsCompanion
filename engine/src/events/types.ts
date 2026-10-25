@@ -97,6 +97,27 @@ export type GameEvent =
       amount: number;
       counterName: string;
     }
+  // --- Varios villanos a la vez (game/multiVillain.ts) ---
+  // El contador activo pasa a otro villano. tiedWith: otros villanos
+  // empatados con el elegido (el jugador inicial puede cambiar la elección).
+  | {
+      type: "ACTIVE_VILLAIN_CHANGED";
+      fromVillainId: string;
+      toVillainId: string;
+      villainName: string;
+      tiedWith: string[];
+    }
+  // Un villano del grupo es derrotado y sale de juego con su plan propio.
+  | { type: "VILLAIN_DEFEATED"; villainId: string; villainName: string }
+  // Un plan secundario propio llegó a su umbral: dispara su efecto y se
+  // reduce (guided = efecto que se resuelve a mano con la carta).
+  | {
+      type: "SIGNATURE_SCHEME_TRIGGERED";
+      schemeId: string;
+      name: string;
+      resetTo: number;
+      guided: boolean;
+    }
   // --- Esbirros y biblioteca ---
   // Un esbirro entra en juego por un efecto de carta o en la preparación.
   | {

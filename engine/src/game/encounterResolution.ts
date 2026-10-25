@@ -18,6 +18,17 @@ import {
   resolveGoblinReinforcements,
   resolveOscorpManufacturing,
 } from "./greenGoblinCards";
+import {
+  resolveBullRush,
+  resolveCrowbarToss,
+  resolveEnergyProjectiles,
+  resolveGetWrecked,
+  resolveIveBeenWaiting,
+  resolveLightningBlast,
+  resolveMysticalLink,
+  resolvePummel,
+  resolveTacticalProwess,
+} from "./wreckingCrewCards";
 type RevealResolver = (
   state: GameState,
   playerId: string,
@@ -35,7 +46,26 @@ const REVEAL_RESOLVERS: Record<string, RevealResolver> = {
   "02010": (state) => resolveOscorpManufacturing(state),
   "02012": (state) => resolveAllInADaysWork(state),
   "02026": (state) => resolveGoblinReinforcements(state),
+  "07012": (state, playerId) => resolveCrowbarToss(state, playerId),
+  "07013": (state, playerId) => resolveGetWrecked(state, playerId),
+  "07028": (state, playerId) => resolveGetWrecked(state, playerId),
+  "07040": (state, playerId) => resolveGetWrecked(state, playerId),
+  "07057": (state, playerId) => resolveGetWrecked(state, playerId),
+  "07014": (state) => resolveIveBeenWaiting(state),
+  "07029": (state) => resolveIveBeenWaiting(state),
+  "07041": (state) => resolveIveBeenWaiting(state),
+  "07015": (state) => resolveMysticalLink(state),
+  "07027": (state, playerId) => resolveEnergyProjectiles(state, playerId),
+  "07030": (state, playerId) => resolveLightningBlast(state, playerId),
+  "07031": (state) => resolveTacticalProwess(state),
+  "07044": (state, playerId) => resolvePummel(state, playerId),
+  "07055": (state, playerId) => resolveBullRush(state, playerId),
 };
+
+/** Cartas con "Cuando se muestre" que el motor resuelve solo. */
+export function hasRevealResolver(cardId: string): boolean {
+  return cardId in REVEAL_RESOLVERS;
+}
 export function resolveRevealedCard(
   state: GameState,
   cardId: string,

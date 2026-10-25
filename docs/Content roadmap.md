@@ -37,6 +37,10 @@ tests → UI si procede.
 - **The Green Goblin:** Negocios arriesgados (Norman Osborn / Duende Verde) y
   La fórmula mutagénica (Duende Verde), jugables. Sin sets modulares (igual
   que el Core).
+- **The Wrecking Crew:** Fuga de prisión (Destructor, Bola de Trueno,
+  Martinete y Bulldozer a la vez), jugable. Reglas del inserto oficial del
+  pack. No modelado: el modo "desafío extremo" (versiones A y luego B) ni las
+  mezclas A/B.
 - **Sistemas de motor:** registro de escenarios, plan principal multi-etapa,
   Oleada (Surge), Represalia (infraestructura), Drones, `scenarioId` en
   GameState (el nombre del villano ya no es la clave), villano de dos caras +
@@ -44,7 +48,14 @@ tests → UI si procede.
   muestre" de estadios por datos, efecto "Cuando se complete" de etapa (OPA
   hostil), amenaza inicial ×jugadores ([per_hero]), aceleración variable por
   rasgo, iconos de plan (Aceleración, Crisis, Peligro), Guardia por datos,
-  esbirros de preparación y acción "poner esbirro en juego" (efectos guiados).
+  esbirros de preparación y acción "poner esbirro en juego" (efectos guiados),
+  varios villanos a la vez con contador activo (villano activo + reserva, un
+  mazo de encuentros por villano, ataque a cualquier villano, victoria al
+  derrotarlos a todos), planes secundarios propios con efecto al llegar a 10,
+  aceleración fija, Respuesta obligada del plan tras el paso 1 y acciones
+  manuales de "hacer activo" y "+1 amenaza" para efectos guiados. El núcleo
+  "el villano X ataca / maquina" es común (villainAttacks / villainSchemes) y
+  sirve para los tratados que activan a un villano concreto.
 - Progresión de estadios Estándar I→II / Experto II→III: CONFIRMADA por la
   carta 1A en los dos escenarios de Green Goblin; sigue siendo asunción en el
   Core.
@@ -56,8 +67,8 @@ tests → UI si procede.
 ### Fase A — Packs de escenario independientes (orden de salida)
 
 1. ~~**The Green Goblin** (`gob`, 2019-12) — 2 escenarios.~~ **Hecho.**
-2. **The Wrecking Crew** (`twc`, 2020-02) — varios villanos SIN plan principal;
-   requiere soporte de escenario sin main scheme. _Verificar._
+2. ~~**The Wrecking Crew** (`twc`, 2020-02) — cuatro villanos a la vez con
+   contador activo (sí tiene plan principal: Fuga de prisión).~~ **Hecho.**
 3. **Ronan Modular Set** (`ron`, 2020-08) — probablemente MODULAR, no escenario
    completo. _Verificar; posible tratamiento aparte._
 4. **The Hood** (`hood`, 2021-11) — probablemente MODULAR. _Verificar._
@@ -83,7 +94,11 @@ Cada caja trae varios villanos/escenarios; se listan y verifican al llegar.
 
 ### Sistemas de motor que probablemente habrá que construir (a confirmar)
 
-- Escenario SIN plan principal (The Wrecking Crew).
+- Varios villanos con contador activo: YA existe (The Wrecking Crew); los
+  Seis Siniestros (Sinister Motives) deberían poder reutilizarlo.
+- Los tratados estándar Agresión y Todos a una no dan carta de aumento al
+  villano y no usan villainAttacks (no aplican habilidades de su cara, p.ej.
+  la Interrupción de Norman). Revisar.
 - Sets de némesis y obligaciones (también lado héroe, ver Track 2).
 - Efectos de Entorno más allá de Drones y del Entorno de dos caras con
   contadores (este último ya existe: Negocios arriesgados).

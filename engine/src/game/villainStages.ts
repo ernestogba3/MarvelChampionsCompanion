@@ -5,7 +5,7 @@ import type {
   VillainState,
 } from "../domain/types.ts";
 import type { GameEvent } from "../events/types.ts";
-import { getScenarioForState } from "../scenarios";
+import { getScenarioForState, villainDefinition } from "../scenarios";
 import {
   faceForNextStage,
   revealVillainFace,
@@ -31,16 +31,20 @@ export function advanceVillainStage(state: GameState): {
   events: GameEvent[];
 } {
   const scenario = getScenarioForState(state);
-  if (scenario === undefined) {
+  const villainDef =
+    scenario !== undefined
+      ? villainDefinition(scenario, state.villain.villainId)
+      : undefined;
+  if (villainDef === undefined) {
     return { state, events: [] };
   }
-  const currentIndex = scenario.stages.findIndex(
+  const currentIndex = villainDef.stages.findIndex(
     (s) => s.stage === state.villain.stage,
   );
   if (currentIndex < 0) {
     return { state, events: [] };
   }
-  const nextStage = scenario.stages[currentIndex + 1];
+  const nextStage = villainDef.stages[currentIndex + 1];
   if (nextStage === undefined) {
     return { state, events: [] };
   }
@@ -61,7 +65,11 @@ export function advanceVillainStage(state: GameState): {
     state.villain.face !== undefined
       ? faceForNextStage(state.villain.face)
       : undefined;
-  const { def: faceDef, name } = stageFace(scenario, nextStage, face ?? "A");
+  const { def: faceDef, name } = stageFace(
+    villainDef.name,
+    nextStage,
+    face ?? "A",
+  );
   const newVillain: VillainState = {
     ...state.villain,
     name,

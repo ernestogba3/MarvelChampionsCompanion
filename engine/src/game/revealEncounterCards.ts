@@ -1,23 +1,18 @@
 import type { GameState } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import { getCardDefinition } from "../data/cards";
-import { resolveRevealedCard } from "./encounterResolution";
+import {
+  hasRevealResolver,
+  resolveRevealedCard,
+} from "./encounterResolution";
 import { putCardIntoPlay } from "./putCardIntoPlay";
+import {
+  discardEncounterCard,
+  resolveSignatureSchemeOverflows,
+} from "./multiVillain";
 
-const REVEAL_EFFECT_IDS = new Set([
-  "01103",
-  "01104",
-  "01105",
-  "01106",
-  "01186",
-  "01187",
-  "01188",
-  "01189",
-  "01190",
-  "02010",
-  "02012",
-  "02026",
-]);
+// Las cartas con "Cuando se muestre" que el motor resuelve son las que tienen
+// resolución registrada en encounterResolution (una sola lista).
 
 export function revealPendingCardsForPlayer(
   state: GameState,
@@ -93,7 +88,7 @@ export function revealPendingCardsForPlayer(
       currentState = result.state;
       allEvents.push(...result.events);
     }
-    if (REVEAL_EFFECT_IDS.has(cardId)) {
+    if (hasRevealResolver(cardId)) {
       const result = resolveRevealedCard(currentState, cardId, playerId);
       currentState = result.state;
       allEvents.push(...result.events);
@@ -108,10 +103,14 @@ export function revealPendingCardsForPlayer(
     if (def?.surge) {
       allEvents.push({ type: "CARD_GAINED_SURGE", cardName: def.nameEs });
     }
-    currentState = {
-      ...currentState,
-      encounterDiscard: [...currentState.encounterDiscard, cardId],
-    };
+    // Planes propios (The Wrecking Crew) que hayan llegado a su umbral por
+    // la amenaza que haya colocado esta carta.
+    const overflow = resolveSignatureSchemeOverflows(currentState);
+    currentState = overflow.state;
+    allEvents.push(...overflow.events);
+    // Al descarte del mazo de su villano (en escenarios de un solo villano,
+    // el descarte de siempre).
+    currentState = discardEncounterCard(currentState, cardId);
   }
 
   currentState = {

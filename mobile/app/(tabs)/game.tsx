@@ -34,6 +34,10 @@ import {
     createDrone,
     adjustEnvironmentCounters,
     putEncounterMinionIntoPlay,
+    allVillains,
+    setActiveVillain,
+    addThreatToScheme,
+    getScenarioForState,
 } from 'engine';
 import type { GameState } from 'engine';
 import { loadGame, saveGame } from '../../storage/gameStorage';
@@ -132,6 +136,9 @@ export default function GameScreen() {
     // Jugador para el que se está eligiendo un esbirro que poner en juego
     // (efectos de carta guiados: "pon en juego el esbirro enfrentado a ti").
     const [minionPickerPlayerId, setMinionPickerPlayerId] = useState<string | null>(null);
+    // Varios villanos (The Wrecking Crew): villano al que atacan los jugadores.
+    // null = el villano activo.
+    const [attackTargetId, setAttackTargetId] = useState<string | null>(null);
 
     const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
     const maxWidthFromScreen = screenWidth - 48;
@@ -181,14 +188,23 @@ export default function GameScreen() {
         if (!state) return;
         const amount = parseInt(damageInputs[playerId] ?? '', 10);
         if (!amount || amount <= 0) return;
-        const { state: next, events } = runAndLog(attackVillain, state, playerId, amount);
+        // Con varios villanos se ataca al objetivo elegido (por defecto, el activo).
+        const target =
+            allVillains(state).find((v) => v.villainId === attackTargetId) ?? state.villain;
+        const { state: next, events } = runAndLog(
+            attackVillain,
+            state,
+            playerId,
+            amount,
+            target.villainId,
+        );
         const blocked = events.find((e: any) => e.type === 'ATTACK_BLOCKED_BY_GUARD') as
             | { minionName: string }
             | undefined;
         if (blocked) {
             Alert.alert(
                 'Bloqueado por Guardia',
-                `No puedes atacar a ${state.villain.name} mientras "${blocked.minionName}" esté enfrentado contigo. Derrótalo primero.`,
+                `No puedes atacar a ${target.name} mientras "${blocked.minionName}" esté enfrentado contigo. Derrótalo primero.`,
             );
             return;
         }
@@ -225,6 +241,22 @@ export default function GameScreen() {
     async function handleEnvironmentCounters(delta: number) {
         if (!state) return;
         const { state: next } = runAndLog(adjustEnvironmentCounters, state, delta);
+        await persist(next);
+    }
+
+    // Contador activo a mano (empates que decide el jugador inicial y cartas
+    // que "mueven el contador activo").
+    async function handleSetActive(villainId: string) {
+        if (!state) return;
+        const { state: next } = runAndLog(setActiveVillain, state, villainId);
+        await persist(next);
+    }
+
+    // +1 de amenaza a un plan, para los efectos de carta guiados. Si un plan
+    // propio llega a 10, el motor dispara su efecto.
+    async function handleAddThreat(schemeId: string) {
+        if (!state) return;
+        const { state: next } = runAndLog(addThreatToScheme, state, schemeId, 1);
         await persist(next);
     }
 
@@ -369,7 +401,7 @@ export default function GameScreen() {
                 </Text>
                 <Text className="font-sans text-gris-pizarra text-base mt-4 text-center">
                     {outcome === 'WIN'
-                        ? `Has derrotado a ${state.villain.name}.`
+                        ? `Has derrotado a ${getScenarioForState(state)?.villainName ?? state.villain.name}.`
                         : 'El plan principal se ha completado.'}
                 </Text>
             </View>
@@ -425,6 +457,13 @@ export default function GameScreen() {
 
     // Entorno con contadores (Negocios arriesgados). Ausente en el resto.
     const environment = state.environment;
+
+    // Varios villanos a la vez (The Wrecking Crew): todos los villanos en
+    // juego y el objetivo de los ataques (el elegido o, si no, el activo).
+    const isMultiVillain = state.reserveVillains !== undefined;
+    const villainsInPlay = allVillains(state);
+    const attackTarget =
+        villainsInPlay.find((v) => v.villainId === attackTargetId) ?? state.villain;
 
     // Esbirros que se pueden poner en juego por un efecto de carta: los que
     // quedan en el mazo o el descarte de encuentros, agrupados por carta.
@@ -522,6 +561,71 @@ export default function GameScreen() {
                         )}
                     </View>
                 </View>
+
+                {/* VARIOS VILLANOS (The Wrecking Crew): contador activo y objetivo */}
+                {isMultiVillain && (
+                    <View className="bg-crema/5 rounded-2xl p-4 gap-3">
+                        <Text className="font-sans-bold text-crema text-base">Villanos en juego</Text>
+                        <Text className="font-sans text-gris-pizarra text-[11px]">
+                            Solo activa el villano activo. Toca un villano para atacarlo; usa
+                            "Hacer activo" en los empates o cuando una carta mueva el contador.
+                        </Text>
+                        {villainsInPlay.map((v) => {
+                            const isActive = v.villainId === state.villain.villainId;
+                            const isTarget = v.villainId === attackTarget.villainId;
+                            return (
+                                <Pressable
+                                    key={v.villainId ?? v.cardId}
+                                    onPress={() => setAttackTargetId(v.villainId ?? null)}
+                                    className="flex-row gap-3 items-center rounded-xl p-2 border"
+                                    style={{
+                                        borderColor: isTarget
+                                            ? 'rgba(212,162,76,0.8)'
+                                            : 'rgba(245,240,230,0.1)',
+                                    }}
+                                >
+                                    <CardThumb
+                                        cardId={v.cardId}
+                                        size="sm"
+                                        onPress={() => setModalCardId(v.cardId)}
+                                    />
+                                    <View className="flex-1 gap-1">
+                                        <View className="flex-row justify-between items-center">
+                                            <Text className="font-sans-bold text-crema text-sm">
+                                                {v.name}
+                                                {isActive ? ' · ACTIVO' : ''}
+                                                {v.tough ? ' · Resistente' : ''}
+                                            </Text>
+                                            <Text className="font-sans text-gris-pizarra text-xs">
+                                                {v.health} / {v.maxHealth}
+                                            </Text>
+                                        </View>
+                                        <ProgressBar
+                                            current={v.health}
+                                            max={v.maxHealth}
+                                            color="bg-rojo-acento"
+                                        />
+                                        {isTarget && (
+                                            <Text className="font-sans-semibold text-dorado text-[10px]">
+                                                Objetivo de los ataques
+                                            </Text>
+                                        )}
+                                    </View>
+                                    {!isActive && v.villainId && (
+                                        <Pressable
+                                            onPress={() => handleSetActive(v.villainId!)}
+                                            className="border border-crema/20 rounded-lg px-2 py-1"
+                                        >
+                                            <Text className="font-sans-semibold text-crema text-[11px]">
+                                                Hacer activo
+                                            </Text>
+                                        </Pressable>
+                                    )}
+                                </Pressable>
+                            );
+                        })}
+                    </View>
+                )}
 
                 {/* ENTORNO CON CONTADORES (Negocios arriesgados) */}
                 {environment && (
@@ -644,7 +748,7 @@ export default function GameScreen() {
                                         onChangeText={(text) =>
                                             setDamageInputs((prev) => ({ ...prev, [p.id]: text }))
                                         }
-                                        placeholder={`Daño a ${state.villain.name}`}
+                                        placeholder={`Daño a ${attackTarget.name}`}
                                     />
                                     <Pressable
                                         onPress={() => handleAttack(p.id)}
@@ -750,7 +854,11 @@ export default function GameScreen() {
                                         <View className="flex-row justify-between items-center">
                                             <Text className="font-sans text-crema text-sm flex-1" numberOfLines={1}>
                                                 {scheme.name}
-                                                {scheme.isMain ? ' · Principal' : ' · Secundario'}
+                                                {scheme.isMain
+                                                    ? ' · Principal'
+                                                    : scheme.villainId
+                                                      ? ` · de ${villainsInPlay.find((v) => v.villainId === scheme.villainId)?.name ?? ''}`
+                                                      : ' · Secundario'}
                                             </Text>
                                             <Text className="font-sans text-gris-pizarra text-xs">
                                                 {scheme.threat}/{scheme.threatToComplete}
@@ -786,6 +894,16 @@ export default function GameScreen() {
                                                 </Pressable>
                                             </View>
                                         )}
+                                        {/* +1 de amenaza para efectos de carta guiados
+                                            ("coloca N de amenaza en …"), en cualquier paso. */}
+                                        <Pressable
+                                            onPress={() => handleAddThreat(scheme.id)}
+                                            className="border border-crema/20 rounded-lg py-1 items-center mt-1"
+                                        >
+                                            <Text className="font-sans-semibold text-crema text-xs">
+                                                +1 amenaza (efecto de carta)
+                                            </Text>
+                                        </Pressable>
                                     </View>
                                 </View>
                             );

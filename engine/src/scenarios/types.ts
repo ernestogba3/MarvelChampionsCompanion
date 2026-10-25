@@ -56,6 +56,24 @@ export interface VillainFaceAbilities {
    * mutagénica: 1/1/2).
    */
   threatAfterDamagingAttack?: number;
+  /**
+   * "Cuando maquine, coloca la amenaza en su plan secundario en vez de en el
+   * plan principal" (villanos de The Wrecking Crew).
+   */
+  schemesOnOwnSideScheme?: boolean;
+  /**
+   * "+N ATQ si el ataque no es defendido" (Destructor: +2). El motor no
+   * modela defensores, así que todos sus ataques cuentan como no defendidos.
+   */
+  attackBonusIfUndefended?: number;
+  /**
+   * Respuesta obligada "después de que te ataque, inflige N de daño a cada
+   * personaje que controles" (Bola de Trueno: 1). El motor la aplica a la
+   * identidad (no modela aliados).
+   */
+  damageAfterAttack?: number;
+  /** Represalia N impresa en la carta del villano (Martinete: 1). */
+  retaliate?: number;
 }
 
 /**
@@ -124,6 +142,56 @@ export type MainSchemeCompletionEffect = {
 };
 
 /**
+ * Respuesta obligada del plan principal tras el paso 1 de la fase del villano
+ * que el motor resuelve solo.
+ *
+ * THREAT_ON_EACH_SIDE_SCHEME_THEN_MOVE_ACTIVE (Fuga de prisión): coloca N de
+ * amenaza en cada plan secundario y mueve el contador activo al villano cuyo
+ * plan tenga más amenaza (empate: elige el jugador inicial).
+ */
+export type MainSchemeAfterThreatStepEffect = {
+  type: "THREAT_ON_EACH_SIDE_SCHEME_THEN_MOVE_ACTIVE";
+  amount: number;
+};
+
+/**
+ * Efecto de un plan secundario propio al llegar a su umbral (The Wrecking
+ * Crew: "si hay 10 o más de amenaza aquí, …; quita toda la amenaza menos 3").
+ * GUIDED = el motor no puede resolverlo (p.ej. descartar la mejora más cara);
+ * aun así reduce la amenaza y avisa con un evento.
+ */
+export type SignatureOverflowEffect =
+  | { type: "DAMAGE_EACH_PLAYER"; amount: number }
+  | { type: "STUN_EACH_PLAYER" }
+  | { type: "MILL_EACH_PLAYER"; count: number }
+  | { type: "GUIDED" };
+
+/** Plan secundario propio de un villano (escenarios con varios villanos). */
+export interface SignatureSchemeDefinition {
+  id: string;
+  cardId: string;
+  name: string;
+  startingThreat: number;
+  /** Umbral que dispara su Respuesta obligada (10). */
+  overflowAt: number;
+  /** Amenaza con la que se queda tras dispararse (3). */
+  resetTo: number;
+  overflowEffect: SignatureOverflowEffect;
+}
+
+/**
+ * Un villano de un escenario con varios villanos a la vez (The Wrecking
+ * Crew). Cada uno tiene sus estadios, su mazo de encuentros y su plan propio.
+ */
+export interface ScenarioVillainDefinition {
+  id: string;
+  name: string;
+  stages: VillainStageDefinition[];
+  encounterDeck: string[];
+  signatureScheme: SignatureSchemeDefinition;
+}
+
+/**
  * Plan principal del escenario. threatToCompletePerPlayer se multiplica por el
  * nº de jugadores; la amenaza inicial solo si startingThreatPerPlayer (icono
  * [per_hero] impreso). La aceleración impresa se multiplica aparte, en
@@ -137,6 +205,13 @@ export interface ScenarioMainScheme {
   /** La amenaza inicial es POR JUGADOR (marvelcdb: base_threat_fixed = false). */
   startingThreatPerPlayer?: boolean;
   escalationThreat: number;
+  /**
+   * La aceleración impresa NO escala por jugadores (marvelcdb:
+   * escalation_threat_fixed = true; Fuga de prisión: +1 fijo).
+   */
+  escalationFixed?: boolean;
+  /** Respuesta obligada tras el paso 1 de la fase del villano. */
+  afterThreatStep?: MainSchemeAfterThreatStepEffect;
   /**
    * Aceleración variable "X = nº de enemigos con este rasgo en juego (incluido
    * el villano)" (Nube de mutágeno: rasgo "Goblin"). Sustituye a la
@@ -202,6 +277,13 @@ export interface ScenarioDefinition {
    * mutagénica: un Esclavo duende por jugador).
    */
   setupMinionsPerPlayer?: string[];
+  /**
+   * Varios villanos a la vez con contador activo (The Wrecking Crew). El
+   * primero de la lista empieza con el contador activo. Si está definido,
+   * `stages` y `encounterDeck` del escenario quedan vacíos: cada villano trae
+   * los suyos.
+   */
+  villains?: ScenarioVillainDefinition[];
   /** Etapa INICIAL del plan principal. */
   mainScheme: ScenarioMainScheme;
   /**
