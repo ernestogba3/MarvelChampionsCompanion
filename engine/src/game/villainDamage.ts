@@ -1,4 +1,4 @@
-import type { GameState } from "../domain/types";
+import type { GameState, VillainState } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import { applyEffect } from "../effects/applyEffect";
 import { discardEncounterCard } from "./encounterDeck";
@@ -13,9 +13,26 @@ export function dealDamageToVillain(
     source: "player",
   });
 }
-export function getVillainAttackBonus(state: GameState): number {
-  return state.villain.attachments.reduce((sum, a) => sum + a.attackBonus, 0);
+/** +ATQ de las acopladas de un villano (Embestida +3, Cuerno de marfil +1). */
+export function attachmentAttackBonus(villain: VillainState): number {
+  return villain.attachments.reduce((sum, a) => sum + a.attackBonus, 0);
 }
+export function getVillainAttackBonus(state: GameState): number {
+  return attachmentAttackBonus(state.villain);
+}
+/**
+ * ATQ del villano activo en un ataque: el impreso más el de sus acopladas.
+ * Para los traicioneros que dicen "el villano te ataca" (Agresión, Todos a
+ * una, Estampida); la activación normal usa villainAttacks.
+ */
+export function activeVillainAttack(state: GameState): number {
+  return state.villain.attack + getVillainAttackBonus(state);
+}
+/**
+ * Descarta las acopladas que se gastan al atacar (Embestida: "al final de
+ * este ataque, descarta la Embestida"). Se llama tras cada ataque del
+ * villano activo.
+ */
 export function consumeOneShotAttackAttachments(state: GameState): {
   state: GameState;
   events: GameEvent[];

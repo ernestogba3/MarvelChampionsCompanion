@@ -2,6 +2,10 @@ import type { GameState } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import type { Effect } from "../effects/types";
 import { applyEffects } from "../effects/applyEffect";
+import {
+  activeVillainAttack,
+  consumeOneShotAttackAttachments,
+} from "./villainDamage";
 
 export function resolveAdvance(state: GameState): {
   state: GameState;
@@ -33,7 +37,7 @@ export function resolveAssault(
     return applyEffects(state, [{ type: "GAIN_SURGE", cardName: "Agresión" }]);
   }
 
-  const amount = state.villain.attack;
+  const amount = activeVillainAttack(state);
   const { state: afterEffects, events: effectEvents } = applyEffects(state, [
     {
       type: "DEAL_DAMAGE",
@@ -43,10 +47,15 @@ export function resolveAssault(
     },
     { type: "QUEUE_ENCOUNTER_CARD", playerId },
   ]);
+  const consumed = consumeOneShotAttackAttachments(afterEffects);
 
   return {
-    state: afterEffects,
-    events: [{ type: "VILLAIN_ATTACKED", playerId, amount }, ...effectEvents],
+    state: consumed.state,
+    events: [
+      { type: "VILLAIN_ATTACKED", playerId, amount },
+      ...effectEvents,
+      ...consumed.events,
+    ],
   };
 }
 
@@ -84,11 +93,12 @@ export function resolveGangUp(
     (m) => m.engagedWith === playerId,
   );
 
+  const villainAttack = activeVillainAttack(state);
   const effects: Effect[] = [
     {
       type: "DEAL_DAMAGE",
       target: { kind: "PLAYER", playerId },
-      amount: state.villain.attack,
+      amount: villainAttack,
       source: "villain",
     },
     { type: "QUEUE_ENCOUNTER_CARD", playerId },
@@ -108,12 +118,14 @@ export function resolveGangUp(
     state,
     effects,
   );
+  const consumed = consumeOneShotAttackAttachments(afterEffects);
 
   return {
-    state: afterEffects,
+    state: consumed.state,
     events: [
-      { type: "VILLAIN_ATTACKED", playerId, amount: state.villain.attack },
+      { type: "VILLAIN_ATTACKED", playerId, amount: villainAttack },
       ...effectEvents,
+      ...consumed.events,
     ],
   };
 }

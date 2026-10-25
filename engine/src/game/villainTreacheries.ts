@@ -1,6 +1,10 @@
 import type { GameState } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import { applyEffects } from "../effects/applyEffect";
+import {
+  activeVillainAttack,
+  consumeOneShotAttackAttachments,
+} from "./villainDamage";
 export function resolveImTough(state: GameState): {
   state: GameState;
   events: GameEvent[];
@@ -42,8 +46,8 @@ export function resolveStampede(
     return applyEffects(state, [{ type: "GAIN_SURGE", cardName: "Estampida" }]);
   }
   const healthBefore = player.health;
-  const amount = state.villain.attack;
-  const { state: afterDamage, events: damageEvents } = applyEffects(state, [
+  const amount = activeVillainAttack(state);
+  const { state: afterAttack, events: damageEvents } = applyEffects(state, [
     {
       type: "DEAL_DAMAGE",
       target: { kind: "PLAYER", playerId },
@@ -51,9 +55,12 @@ export function resolveStampede(
       source: "Estampida",
     },
   ]);
+  const consumed = consumeOneShotAttackAttachments(afterAttack);
+  const afterDamage = consumed.state;
   const semanticEvents: GameEvent[] = [
     { type: "VILLAIN_ATTACKED", playerId, amount },
     ...damageEvents,
+    ...consumed.events,
   ];
   const damaged =
     afterDamage.players.find((p) => p.id === playerId)!.health < healthBefore;

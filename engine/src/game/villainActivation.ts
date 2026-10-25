@@ -8,6 +8,10 @@ import { getScenarioForState } from "../scenarios";
 import { advanceMainSchemeIfComplete } from "../game/mainScheme";
 import { adjustEnvironmentCounters, villainFaceOf } from "./villainFaces";
 import { ownSideScheme, resolveSignatureSchemeOverflows } from "./multiVillain";
+import {
+  attachmentAttackBonus,
+  consumeOneShotAttackAttachments,
+} from "./villainDamage";
 
 /**
  * Roba y descarta las cartas de aumento de UNA activación y devuelve la suma
@@ -67,7 +71,9 @@ export interface VillainActOptions {
  * jugador. Resuelve las habilidades de su cara: la Interrupción de Norman que
  * sustituye el ataque por Infamia, +N ATQ si no es defendido (el motor no
  * modela defensores), daño extra tras atacar y amenaza tras un ataque con
- * daño. Devuelve el daño del ataque (0 si se sustituyó).
+ * daño. Suma el ATQ de sus acopladas (Embestida, Cuerno de marfil) y, al
+ * final del ataque, descarta las que se gastan al atacar. Devuelve el daño
+ * del ataque (0 si se sustituyó).
  */
 export function villainAttacks(
   state: GameState,
@@ -112,6 +118,7 @@ export function villainAttacks(
 
   const amount =
     villain.attack +
+    attachmentAttackBonus(villain) +
     boostValue +
     (options.bonus ?? 0) +
     (face?.attackBonusIfUndefended ?? 0);
@@ -133,6 +140,13 @@ export function villainAttacks(
     { type: "VILLAIN_ATTACKED", playerId, amount },
     ...attacked.events,
   ];
+  // "Al final de este ataque, descarta la Embestida". Las acopladas
+  // modeladas solo están en el villano activo (se acoplan al revelarse).
+  if (villain.villainId === currentState.villain.villainId) {
+    const consumed = consumeOneShotAttackAttachments(currentState);
+    currentState = consumed.state;
+    events = [...events, ...consumed.events];
+  }
 
   // Respuesta obligada "después de que el villano ataque y te inflija daño,
   // coloca N de amenaza sobre el plan principal" (La fórmula mutagénica).
