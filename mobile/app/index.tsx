@@ -239,7 +239,11 @@ export default function IndexScreen() {
       );
       return;
     }
-    let state = createGame(scenarioId, activeSlots, difficulty);
+    // Barajado real del mazo de encuentros: el motor es determinista y la app
+    // le inyecta la aleatoriedad (si no, saldría siempre la misma carta).
+    let state = createGame(scenarioId, activeSlots, difficulty, {
+      shuffle: shuffleDeck,
+    });
     // Para cada jugador que trae mazo: cargarlo, barajarlo e inicializar su
     // biblioteca (mano inicial + biblioteca). Los jugadores sin mazo quedan
     // sin biblioteca simulada y el motor simplemente no les roba cartas.

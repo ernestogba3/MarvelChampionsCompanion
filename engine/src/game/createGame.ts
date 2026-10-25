@@ -8,6 +8,7 @@ import type {
 import { getScenario } from "../scenarios";
 import { mainSchemeStartingThreat } from "./mainScheme";
 import { putEncounterMinionIntoPlay } from "./putCardIntoPlay";
+import { noShuffle, type Shuffle } from "./playerLibrary";
 import {
   initialEnvironment,
   revealVillainFace,
@@ -62,13 +63,20 @@ function buildPlayers(setups: PlayerSetup[]): PlayerState[] {
  * definición del escenario y construye el GameState.
  *
  * Los PG del villano y el umbral del plan principal escalan ×nº de jugadores;
- * la amenaza inicial del plan principal no (la aceleración por ronda escala
- * aparte, en addThreatStep).
+ * la amenaza inicial del plan principal solo si la carta lo indica
+ * (startingThreatPerPlayer). La aceleración por ronda escala aparte, en
+ * addThreatStep.
+ *
+ * El mazo de encuentros se baraja con `options.shuffle` antes de sacar los
+ * esbirros de preparación. Por defecto (noShuffle) el motor es determinista y
+ * conserva el orden del escenario (tests); la app pasa un barajador real para
+ * que no salga siempre la misma carta.
  */
 export function createGame(
   scenarioId: string,
   playerSetups: PlayerSetup[],
   difficulty: Difficulty = "STANDARD",
+  options: { shuffle?: Shuffle } = {},
 ): GameState {
   if (playerSetups.length === 0) {
     throw new Error("Se necesita al menos un jugador para crear la partida.");
@@ -157,7 +165,7 @@ export function createGame(
     villain,
     schemes: [mainScheme, ...sideSchemes],
     minions: [],
-    encounterDeck: [...scenario.encounterDeck],
+    encounterDeck: (options.shuffle ?? noShuffle)(scenario.encounterDeck),
     encounterDiscard: [],
     pendingEncounterDeals: [],
     reservedNemesis: null,
