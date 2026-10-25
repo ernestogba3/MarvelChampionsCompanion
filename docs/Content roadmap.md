@@ -2,7 +2,8 @@
 
 Roadmap maestro para cubrir TODO el contenido de Marvel Champions: villanos
 (escenarios que se implementan en el motor) y personajes jugables (héroes).
-Integra y sustituye a `claude/villain-roadmap.md`.
+Integra y sustituye al antiguo roadmap de villanos (`villain-roadmap.md`, que
+nunca llegó a estar en el repositorio).
 
 Lista de packs tomada de la API de marvelcdb (fechas incluidas). El contenido
 exacto de cada pack/caja se verifica al construirlo (nunca de memoria).

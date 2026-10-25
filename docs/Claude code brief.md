@@ -3,7 +3,7 @@
 Este documento es autosuficiente: dáselo a Claude Code para que implemente
 villanos de Marvel Champions villano a villano, con mínima dirección humana.
 Trabaja en el repo real (monorepo `engine/` + `mobile/`). Léelo entero antes de
-empezar. La cola de villanos está en `claude/content-roadmap.md`.
+empezar. La cola de villanos está en `docs/Content roadmap.md`.
 
 ## Misión
 
@@ -94,7 +94,7 @@ Klaw, Ultron ya están hechos y sirven de plantilla).
 - Cartas en `cards.ts` verificadas, escenario creado y registrado, tests nuevos
   en verde, suite completa verde, typecheck de engine y mobile limpios,
   divergencias del modo árbitro documentadas en el `.ts` del escenario, y
-  actualizado `claude/content-roadmap.md` marcando el villano como hecho.
+  actualizado `docs/Content roadmap.md` marcando el villano como hecho.
 
 ## Formato de commit (una entrega por villano)
 
@@ -109,6 +109,6 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ## Orden de trabajo
 
-Seguir `claude/content-roadmap.md`: Fase A (packs de escenario, empezando por
+Seguir `docs/Content roadmap.md`: Fase A (packs de escenario, empezando por
 The Green Goblin) y luego Fase B (cajas de campaña, en orden de salida). Un
 villano por iteración; parar en los puntos indicados.
