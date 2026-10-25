@@ -6,7 +6,13 @@ export type CardType =
   | "TREACHERY"
   | "ATTACHMENT"
   | "ENVIRONMENT";
-export type EncounterSet = "RHINO" | "KLAW" | "ULTRON" | "STANDARD";
+export type EncounterSet =
+  | "RHINO"
+  | "KLAW"
+  | "ULTRON"
+  | "RISKY_BUSINESS"
+  | "MUTAGEN_FORMULA"
+  | "STANDARD";
 export interface CardDefinition {
   id: string;
   nameEn: string;
@@ -26,6 +32,21 @@ export interface CardDefinition {
   // impresa; las cartas que "ganan Oleada" bajo condición (muchas treacheries)
   // NO se marcan aquí — esa condición la evalúa el jugador (guiada).
   surge?: boolean;
+  // Palabra clave Guardia (Guard) IMPRESA en un esbirro. Los esbirros que
+  // entran por la ruta genérica (sin fábrica propia en putCardIntoPlay) toman
+  // de aquí su Guardia.
+  guard?: boolean;
+  // La amenaza inicial impresa es POR JUGADOR (icono [per_hero] en la carta;
+  // en marvelcdb, base_threat_fixed = false). El motor la multiplica ×nº de
+  // jugadores al poner la carta en juego. Sin el campo = amenaza fija.
+  startingThreatPerPlayer?: boolean;
+  // Iconos de plan (RRG): Aceleración = +1 de amenaza al plan principal en el
+  // paso 1 de la fase del villano por icono; Crisis = no se puede quitar
+  // amenaza del plan principal mientras esté en juego; Peligro = +1 carta de
+  // encuentro en el paso 3 por icono.
+  accelerationIcons?: number;
+  crisis?: boolean;
+  hazardIcons?: number;
 }
 export const CARD_CATALOG: Record<string, CardDefinition> = {
   "01094": {
@@ -165,6 +186,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     set: "RHINO",
     startingThreat: 2,
     boost: 2,
+    hazardIcons: 1,
   },
   "01108": {
     id: "01108",
@@ -174,6 +196,8 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     set: "RHINO",
     startingThreat: 2,
     boost: 2,
+    startingThreatPerPlayer: true,
+    crisis: true,
   },
   // -------------------------------------------------------------------------
   // Set de KLAW (Core Set, 01113–01127). Datos verificados contra marvelcdb
@@ -313,6 +337,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     set: "KLAW",
     startingThreat: 2,
     boost: 2,
+    crisis: true,
   },
   "01126": {
     id: "01126",
@@ -322,6 +347,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     set: "KLAW",
     startingThreat: 3,
     boost: 2,
+    hazardIcons: 1,
   },
   "01127": {
     id: "01127",
@@ -331,6 +357,8 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     set: "KLAW",
     startingThreat: 3,
     boost: 0,
+    startingThreatPerPlayer: true,
+    accelerationIcons: 1,
   },
   // -------------------------------------------------------------------------
   // Set de ULTRON (Core Set, 01134–01150). Datos verificados contra marvelcdb
@@ -478,6 +506,7 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     set: "ULTRON",
     startingThreat: 4,
     boost: 2,
+    accelerationIcons: 1,
   },
   "01149": {
     id: "01149",
@@ -487,6 +516,8 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     set: "ULTRON",
     startingThreat: 3,
     boost: 3,
+    startingThreatPerPlayer: true,
+    hazardIcons: 1,
   },
   "01150": {
     id: "01150",
@@ -496,6 +527,395 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     set: "ULTRON",
     startingThreat: 2,
     boost: 3,
+    startingThreatPerPlayer: true,
+    hazardIcons: 1,
+  },
+  // -------------------------------------------------------------------------
+  // Set NEGOCIOS ARRIESGADOS / Risky Business (pack The Green Goblin, 02001–
+  // 02013). Datos verificados contra marvelcdb (es + en) en 2026-10.
+  //
+  // El villano es de DOS CARAS: cada estadio es una carta con Norman Osborn
+  // (cara "a") y Duende Verde (cara "b"). Norman no tiene ATQ impreso (el FAQ
+  // oficial lo trata como 0) y el Duende no tiene PLA impreso; por eso esos
+  // campos se omiten aquí. El escenario (scenarios/riskyBusiness.ts) modela
+  // las dos caras y el Entorno de dos caras (02006a/02006b).
+  //
+  // Nota: la API en inglés transcribe "3 indirect" en el Duende Verde (II); la
+  // carta impresa (imagen 02002b) y la API española dicen 4. Se usa 4.
+  // -------------------------------------------------------------------------
+  "02001a": {
+    id: "02001a",
+    nameEn: "Norman Osborn (I)",
+    nameEs: "Norman Osborn (I)",
+    type: "VILLAIN",
+    set: "RISKY_BUSINESS",
+    traits: ["Businessman", "Genius"],
+    scheme: 2,
+    health: 14,
+  },
+  "02001b": {
+    id: "02001b",
+    nameEn: "Green Goblin (I)",
+    nameEs: "Duende Verde (I)",
+    type: "VILLAIN",
+    set: "RISKY_BUSINESS",
+    traits: ["Goblin"],
+    attack: 3,
+    health: 14,
+  },
+  "02002a": {
+    id: "02002a",
+    nameEn: "Norman Osborn (II)",
+    nameEs: "Norman Osborn (II)",
+    type: "VILLAIN",
+    set: "RISKY_BUSINESS",
+    traits: ["Businessman", "Genius"],
+    scheme: 2,
+    health: 18,
+  },
+  "02002b": {
+    id: "02002b",
+    nameEn: "Green Goblin (II)",
+    nameEs: "Duende Verde (II)",
+    type: "VILLAIN",
+    set: "RISKY_BUSINESS",
+    traits: ["Goblin"],
+    attack: 4,
+    health: 18,
+  },
+  "02003a": {
+    id: "02003a",
+    nameEn: "Norman Osborn (III)",
+    nameEs: "Norman Osborn (III)",
+    type: "VILLAIN",
+    set: "RISKY_BUSINESS",
+    traits: ["Businessman", "Genius"],
+    scheme: 3,
+    health: 22,
+  },
+  "02003b": {
+    id: "02003b",
+    nameEn: "Green Goblin (III)",
+    nameEs: "Duende Verde (III)",
+    type: "VILLAIN",
+    set: "RISKY_BUSINESS",
+    traits: ["Goblin"],
+    attack: 4,
+    health: 22,
+  },
+  "02004b": {
+    id: "02004b",
+    nameEn: "Hostile Takeover",
+    nameEs: "OPA hostil",
+    type: "MAIN_SCHEME",
+    set: "RISKY_BUSINESS",
+    startingThreat: 2,
+    startingThreatPerPlayer: true,
+    escalationThreat: 1,
+    threatToComplete: 7,
+  },
+  "02005b": {
+    id: "02005b",
+    nameEn: "Corporate Acquisition",
+    nameEs: "Adquisición corporativa",
+    type: "MAIN_SCHEME",
+    set: "RISKY_BUSINESS",
+    startingThreat: 1,
+    startingThreatPerPlayer: true,
+    escalationThreat: 2,
+    threatToComplete: 10,
+    hazardIcons: 1,
+  },
+  "02006a": {
+    id: "02006a",
+    nameEn: "Criminal Enterprise",
+    nameEs: "Empresa criminal",
+    type: "ENVIRONMENT",
+    set: "RISKY_BUSINESS",
+  },
+  "02006b": {
+    id: "02006b",
+    nameEn: "State of Madness",
+    nameEs: "Estado de locura",
+    type: "ENVIRONMENT",
+    set: "RISKY_BUSINESS",
+  },
+  "02007": {
+    id: "02007",
+    nameEn: "Hired Gun",
+    nameEs: "Pistolero a sueldo",
+    type: "MINION",
+    set: "RISKY_BUSINESS",
+    traits: ["Criminal"],
+    attack: 2,
+    scheme: 2,
+    health: 3,
+    boost: 2,
+  },
+  "02008": {
+    id: "02008",
+    nameEn: "Private Security Specialist",
+    nameEs: "Guardia privado de seguridad",
+    type: "MINION",
+    set: "RISKY_BUSINESS",
+    traits: ["Mercenary"],
+    attack: 1,
+    scheme: 0,
+    health: 4,
+    boost: 1,
+    guard: true,
+  },
+  "02009": {
+    id: "02009",
+    nameEn: "Collapsing Bridge",
+    nameEs: "Puente inestable",
+    type: "SIDE_SCHEME",
+    set: "RISKY_BUSINESS",
+    startingThreat: 2,
+    startingThreatPerPlayer: true,
+    boost: 0,
+    crisis: true,
+  },
+  "02010": {
+    id: "02010",
+    nameEn: "Oscorp Manufacturing",
+    nameEs: "Industrias Oscorp",
+    type: "SIDE_SCHEME",
+    set: "RISKY_BUSINESS",
+    startingThreat: 2,
+    startingThreatPerPlayer: true,
+    boost: 3,
+    accelerationIcons: 1,
+  },
+  "02011": {
+    id: "02011",
+    nameEn: "Payoff",
+    nameEs: "Soborno",
+    type: "SIDE_SCHEME",
+    set: "RISKY_BUSINESS",
+    startingThreat: 2,
+    startingThreatPerPlayer: true,
+    boost: 1,
+    hazardIcons: 1,
+  },
+  "02012": {
+    id: "02012",
+    nameEn: "All in a Day's Work",
+    nameEs: "Rutina laboral",
+    type: "TREACHERY",
+    set: "RISKY_BUSINESS",
+    boost: 0,
+  },
+  "02013": {
+    id: "02013",
+    nameEn: "Mad Genius",
+    nameEs: "Genio loco",
+    type: "TREACHERY",
+    set: "RISKY_BUSINESS",
+    boost: 1,
+  },
+  // -------------------------------------------------------------------------
+  // Set LA FÓRMULA MUTAGÉNICA / Mutagen Formula (pack The Green Goblin, 02014–
+  // 02032). Datos verificados contra marvelcdb (es + en) en 2026-10. Los
+  // efectos de aumento con estrella (sin icono numérico) usan boost 0 y se
+  // resuelven por el texto de la carta (guiados).
+  // -------------------------------------------------------------------------
+  "02014": {
+    id: "02014",
+    nameEn: "Green Goblin (I)",
+    nameEs: "Duende Verde (I)",
+    type: "VILLAIN",
+    set: "MUTAGEN_FORMULA",
+    traits: ["Goblin"],
+    attack: 2,
+    scheme: 1,
+    health: 16,
+  },
+  "02015": {
+    id: "02015",
+    nameEn: "Green Goblin (II)",
+    nameEs: "Duende Verde (II)",
+    type: "VILLAIN",
+    set: "MUTAGEN_FORMULA",
+    traits: ["Goblin"],
+    attack: 2,
+    scheme: 2,
+    health: 18,
+  },
+  "02016": {
+    id: "02016",
+    nameEn: "Green Goblin (III)",
+    nameEs: "Duende Verde (III)",
+    type: "VILLAIN",
+    set: "MUTAGEN_FORMULA",
+    traits: ["Goblin"],
+    attack: 3,
+    scheme: 2,
+    health: 20,
+  },
+  "02017b": {
+    id: "02017b",
+    nameEn: "Unleashing the Mutagen",
+    nameEs: "Liberar el mutágeno",
+    type: "MAIN_SCHEME",
+    set: "MUTAGEN_FORMULA",
+    startingThreat: 2,
+    startingThreatPerPlayer: true,
+    escalationThreat: 1,
+    threatToComplete: 7,
+  },
+  // Aceleración impresa "X" (= nº de enemigos [[Duende]] en juego, incluido el
+  // Duende Verde; no escala por jugadores): sin escalationThreat numérico. El
+  // escenario la declara como dinámica (escalationPerEnemyWithTrait).
+  "02018b": {
+    id: "02018b",
+    nameEn: "Mutagen Cloud",
+    nameEs: "Nube de mutágeno",
+    type: "MAIN_SCHEME",
+    set: "MUTAGEN_FORMULA",
+    startingThreat: 4,
+    startingThreatPerPlayer: true,
+    threatToComplete: 11,
+  },
+  "02019": {
+    id: "02019",
+    nameEn: "Goblin Glider",
+    nameEs: "Planeador duende",
+    type: "ATTACHMENT",
+    set: "MUTAGEN_FORMULA",
+    traits: ["Vehicle"],
+    attack: 1,
+    boost: 3,
+  },
+  "02020": {
+    id: "02020",
+    nameEn: "Hysteria",
+    nameEs: "Histeria",
+    type: "ATTACHMENT",
+    set: "MUTAGEN_FORMULA",
+    traits: ["Condition"],
+    boost: 1,
+  },
+  "02021": {
+    id: "02021",
+    nameEn: "Pumpkin Bombs",
+    nameEs: "Bombas calabaza",
+    type: "ATTACHMENT",
+    set: "MUTAGEN_FORMULA",
+    traits: ["Weapon"],
+    boost: 2,
+  },
+  "02022": {
+    id: "02022",
+    nameEn: "Goblin Knight",
+    nameEs: "Caballero Duende",
+    type: "MINION",
+    set: "MUTAGEN_FORMULA",
+    traits: ["Elite", "Goblin"],
+    attack: 2,
+    scheme: 2,
+    health: 7,
+    boost: 2,
+  },
+  "02023": {
+    id: "02023",
+    nameEn: "Goblin Soldier",
+    nameEs: "Soldado duende",
+    type: "MINION",
+    set: "MUTAGEN_FORMULA",
+    traits: ["Goblin"],
+    attack: 1,
+    scheme: 1,
+    health: 5,
+    boost: 0,
+  },
+  "02024": {
+    id: "02024",
+    nameEn: "Goblin Thrall",
+    nameEs: "Esclavo duende",
+    type: "MINION",
+    set: "MUTAGEN_FORMULA",
+    traits: ["Goblin"],
+    attack: 1,
+    scheme: 1,
+    health: 3,
+    boost: 0,
+    guard: true,
+  },
+  "02025": {
+    id: "02025",
+    nameEn: "Monster",
+    nameEs: "Monstruo",
+    type: "MINION",
+    set: "MUTAGEN_FORMULA",
+    traits: ["Elite", "Goblin"],
+    attack: 3,
+    scheme: 1,
+    health: 6,
+    boost: 2,
+  },
+  "02026": {
+    id: "02026",
+    nameEn: "Goblin Reinforcements",
+    nameEs: "Duendes de refuerzo",
+    type: "SIDE_SCHEME",
+    set: "MUTAGEN_FORMULA",
+    startingThreat: 2,
+    boost: 2,
+    hazardIcons: 1,
+  },
+  "02027": {
+    id: "02027",
+    nameEn: "Goblin Nation",
+    nameEs: "Nación duende",
+    type: "SIDE_SCHEME",
+    set: "MUTAGEN_FORMULA",
+    startingThreat: 2,
+    startingThreatPerPlayer: true,
+    boost: 0,
+  },
+  "02028": {
+    id: "02028",
+    nameEn: "Overrun",
+    nameEs: "Horda imparable",
+    type: "SIDE_SCHEME",
+    set: "MUTAGEN_FORMULA",
+    startingThreat: 1,
+    startingThreatPerPlayer: true,
+    boost: 1,
+    accelerationIcons: 2,
+  },
+  "02029": {
+    id: "02029",
+    nameEn: "Death from Above",
+    nameEs: "Muerte desde el cielo",
+    type: "TREACHERY",
+    set: "MUTAGEN_FORMULA",
+    boost: 1,
+  },
+  "02030": {
+    id: "02030",
+    nameEn: "I See You",
+    nameEs: "Te veo",
+    type: "TREACHERY",
+    set: "MUTAGEN_FORMULA",
+    boost: 1,
+  },
+  "02031": {
+    id: "02031",
+    nameEn: "Overconfidence",
+    nameEs: "Exceso de confianza",
+    type: "TREACHERY",
+    set: "MUTAGEN_FORMULA",
+    boost: 1,
+  },
+  "02032": {
+    id: "02032",
+    nameEn: "Wicked Ambitions",
+    nameEs: "Ambición cruel",
+    type: "TREACHERY",
+    set: "MUTAGEN_FORMULA",
+    boost: 1,
   },
   "01186": {
     id: "01186",

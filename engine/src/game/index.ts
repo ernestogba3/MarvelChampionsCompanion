@@ -8,15 +8,35 @@ export type { PlayerSetup } from "./createGame";
 export {
   getScenario,
   getScenarioByVillainName,
+  getScenarioForState,
   ALL_SCENARIOS,
 } from "../scenarios";
 export type {
   ScenarioDefinition,
   VillainStageDefinition,
+  VillainFaceAbilities,
+  VillainFlipSideDefinition,
+  RevealDamage,
   ScenarioMainScheme,
+  MainSchemeCompletionEffect,
   ScenarioSideScheme,
+  ScenarioEnvironmentDefinition,
+  EnvironmentFaceDefinition,
   StageProgression,
 } from "../scenarios";
+export {
+  activeVillainFace,
+  adjustEnvironmentCounters,
+  placeOrElseRemoveEnvironmentCounters,
+  flipVillainAndEnvironment,
+  faceForNextStage,
+} from "./villainFaces";
+export type { VillainFace } from "./villainFaces";
+export { putEncounterMinionIntoPlay } from "./putCardIntoPlay";
+export {
+  mainSchemeThreatPerRound,
+  countEnemiesWithTrait,
+} from "./mainScheme";
 export {
   serializeGameState,
   deserializeGameState,
@@ -39,7 +59,12 @@ export { dealPendingEncounterCards } from "./dealEncounterCards";
 export { describeCurrentStep } from "../explanations/stepGuide";
 export { explainRecentEvents } from "../explanations/explainEvent";
 export { runAndLog } from "../events/log";
-export type { GameState, PlayerForm } from "../domain/types";
+export type {
+  GameState,
+  PlayerForm,
+  CardFace,
+  EnvironmentState,
+} from "../domain/types";
 export type { RuleExplanation } from "../explanations/types";
 export { revealPendingCardsForPlayer } from "./revealEncounterCards";
 export {
@@ -75,6 +100,7 @@ export {
   drawToHandSize,
   playCardFromHand,
   discardCardFromHand,
+  millPlayerDeck,
   expandDeckCards,
   hasSimulatedLibrary,
   noShuffle,

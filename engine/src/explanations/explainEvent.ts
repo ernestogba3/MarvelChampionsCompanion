@@ -42,8 +42,8 @@ export function explainEvent(event: GameEvent): RuleExplanation {
         title: "Carta de impulso",
         description:
           event.boostValue > 0
-            ? `Rino revela una carta de impulso con valor ${event.boostValue} y la descarta.`
-            : "Rino revela una carta de impulso sin icono (+0) y la descarta.",
+            ? `El villano revela una carta de impulso con valor ${event.boostValue} y la descarta.`
+            : "El villano revela una carta de impulso sin icono (+0) y la descarta.",
         reason:
           "Al activarse, el villano revela la carta superior del mazo de encuentro y suma su icono de impulso a su ataque o plan de esta activación. Solo se usa el icono: el resto del texto de la carta se ignora, y la carta se descarta sin ponerse en juego.",
       };
@@ -108,21 +108,21 @@ export function explainEvent(event: GameEvent): RuleExplanation {
       if (event.status === "TOUGH") {
         return {
           title: "Dureza",
-          description: `${event.targetId === "villain" ? "Rino" : "El jugador"} recibe un estado de dureza.`,
+          description: `${event.targetId === "villain" ? "El villano" : "El jugador"} recibe un estado de dureza.`,
           reason:
             "Mientras tenga dureza, el primer punto de daño que recibiría se absorbe en vez de aplicarse.",
         };
       }
       return {
         title: "Aturdido",
-        description: `${event.targetId === "villain" ? "Rino" : "El jugador"} queda aturdido.`,
+        description: `${event.targetId === "villain" ? "El villano" : "El jugador"} queda aturdido.`,
         reason:
           "Un personaje aturdido pierde ciertas acciones hasta que se recupera.",
       };
     case "STATUS_REMOVED":
       return {
         title: "Estado eliminado",
-        description: `${event.targetId === "villain" ? "Rino" : "El jugador"} deja de tener ${event.status === "TOUGH" ? "dureza" : "aturdimiento"}.`,
+        description: `${event.targetId === "villain" ? "El villano" : "El jugador"} deja de tener ${event.status === "TOUGH" ? "dureza" : "aturdimiento"}.`,
         reason:
           "Los estados se eliminan al cumplirse su condición o al consumirse.",
       };
@@ -154,6 +154,66 @@ export function explainEvent(event: GameEvent): RuleExplanation {
         description: "Se descarta un accesorio del villano.",
         reason:
           "El accesorio se descarta al cumplir su condición: daño acumulado, o haberse usado una vez.",
+      };
+    case "MAIN_SCHEME_ADVANCED":
+      return {
+        title: "El plan principal avanza",
+        description:
+          "El plan principal se ha completado y pasa a su siguiente etapa.",
+        reason:
+          "En los planes de varias etapas, completar una etapa intermedia no es la derrota: entra la siguiente con su propia amenaza inicial.",
+        nextStep:
+          'Si la etapa completada tenía un efecto "Cuando se complete esta etapa" que la app no resuelve sola, resuélvelo con la carta.',
+      };
+    case "ENVIRONMENT_COUNTERS_CHANGED":
+      return {
+        title: `${event.counterName}: ${event.counters}`,
+        description:
+          event.delta > 0
+            ? `Se colocan ${event.delta} contadores de ${event.counterName} sobre ${event.environmentName}.`
+            : `Se quitan ${-event.delta} contadores de ${event.counterName} de ${event.environmentName}.`,
+        reason:
+          "Cuando el Entorno se queda sin contadores, el villano y el Entorno se dan la vuelta.",
+      };
+    case "VILLAIN_FLIPPED":
+      return {
+        title: `${event.from} se convierte en ${event.to}`,
+        description: `${event.environmentFrom} se ha quedado sin contadores: el villano y el Entorno se dan la vuelta (${event.environmentTo}).`,
+        reason:
+          'Al darse la vuelta, el villano conserva su daño y se resuelve el "Cuando se muestre" de la cara nueva.',
+      };
+    case "VILLAIN_ACTIVATION_REPLACED":
+      return {
+        title:
+          event.replaced === "ATTACK"
+            ? `${event.villainName} no ataca`
+            : `${event.villainName} no ejecuta el Plan`,
+        description:
+          event.delta > 0
+            ? `En vez de eso coloca ${event.delta} contadores de ${event.counterName}.`
+            : `En vez de eso quita ${-event.delta} contadores de ${event.counterName}.`,
+        reason:
+          "Su Interrupción obligada sustituye la activación; como no llega a atacar ni a maquinar, no recibe carta de aumento.",
+      };
+    case "VILLAIN_DAMAGE_REPLACED":
+      return {
+        title: `${event.villainName} no sufre daño`,
+        description: `Los ${event.amount} de daño se convierten en quitar contadores de ${event.counterName}.`,
+        reason:
+          "Su Interrupción obligada sustituye el daño entero; el que sobra se pierde.",
+      };
+    case "MINION_ENTERED_PLAY":
+      return {
+        title: "Esbirro en juego",
+        description: `${event.name} entra en juego enfrentado a un jugador.`,
+        reason:
+          "Algunos efectos de carta ponen esbirros en juego directamente, sin revelarlos.",
+      };
+    case "PLAYER_DECK_MILLED":
+      return {
+        title: "Cartas descartadas del mazo",
+        description: `Se descartan ${event.count} cartas de la parte superior del mazo de un jugador.`,
+        reason: "Un efecto de encuentro obliga a descartar cartas del mazo.",
       };
     default:
       return {

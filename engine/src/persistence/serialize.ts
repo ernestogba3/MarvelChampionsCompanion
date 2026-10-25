@@ -4,6 +4,7 @@ import type {
   SchemeState,
   VillainState,
 } from "../domain/types";
+import { getScenarioByVillainName } from "../scenarios";
 
 const SAVE_FORMAT_VERSION = 1;
 
@@ -67,8 +68,14 @@ function migrateVillain(villain: VillainState): VillainState {
 }
 
 function migrateState(state: GameState): GameState {
+  // Partidas guardadas antes de que GameState llevara scenarioId: se deduce
+  // del nombre del villano (Rino/Klaw/Ultron, los únicos escenarios de
+  // entonces, tienen nombre único). Si no se reconoce, se deja sin él.
+  const scenarioId =
+    state.scenarioId ?? getScenarioByVillainName(state.villain.name)?.id;
   return {
     ...state,
+    ...(scenarioId !== undefined && { scenarioId }),
     difficulty: state.difficulty ?? "STANDARD",
     players: state.players.map(migratePlayer),
     schemes: state.schemes.map(migrateScheme),

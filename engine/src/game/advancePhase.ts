@@ -1,6 +1,7 @@
 import type { GameState } from "../domain/types";
 import { nextPhase } from "./phases";
 import { drawToHandSize, type Shuffle } from "./playerLibrary";
+import { queueHazardEncounterCards } from "./sideSchemes";
 
 /**
  * Avanza al siguiente paso/fase. Al SALIR de la fase del jugador roba, para
@@ -31,6 +32,15 @@ export function advanceToNextStep(
     phase: newPhase,
     round: startingNewRound ? state.round + 1 : state.round,
   };
+
+  // Iconos de Peligro: al entrar en el paso 3 (repartir cartas de encuentro)
+  // se encola 1 carta adicional por icono en juego.
+  if (
+    newPhase.name === "VILLAIN_PHASE" &&
+    newPhase.step === "DEAL_ENCOUNTER_CARDS"
+  ) {
+    next = queueHazardEncounterCards(next);
+  }
 
   if (leavingPlayerPhase) {
     const drawOptions =

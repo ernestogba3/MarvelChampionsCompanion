@@ -239,6 +239,39 @@ export function discardCardFromHand(
 }
 
 /**
+ * Descarta N cartas de la cima de la biblioteca a la pila de descarte (p.ej.
+ * "descarta 1 carta del mazo de cada jugador" de OPA hostil). Si la biblioteca
+ * tiene menos de N, descarta las que haya: el motor no rebaraja aquí ni aplica
+ * la penalización de mazo agotado (se resuelve a mano). Sin biblioteca
+ * simulada o N ≤ 0 → estado intacto.
+ */
+export function millPlayerDeck(
+  state: GameState,
+  playerId: string,
+  count: number,
+): { state: GameState; events: GameEvent[] } {
+  const player = state.players.find((p) => p.id === playerId);
+  if (!player || player.library === undefined || count <= 0) {
+    return { state, events: [] };
+  }
+  const milled = player.library.slice(0, count);
+  if (milled.length === 0) {
+    return { state, events: [] };
+  }
+  const library = player.library.slice(milled.length);
+  const discardPile = [...(player.discardPile ?? []), ...milled];
+
+  const updatedPlayers = state.players.map((p) =>
+    p.id === playerId ? { ...p, library, discardPile } : p,
+  );
+
+  return {
+    state: { ...state, players: updatedPlayers },
+    events: [{ type: "PLAYER_DECK_MILLED", playerId, count: milled.length }],
+  };
+}
+
+/**
  * Devuelve true si el jugador tiene biblioteca simulada (se inicializó con un
  * mazo). La app lo usa para decidir si muestra el panel de mano/biblioteca o
  * no para ese jugador.

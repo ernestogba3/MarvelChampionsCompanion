@@ -14,6 +14,9 @@ const REVEAL_EFFECT_IDS = new Set([
   "01188",
   "01189",
   "01190",
+  "02010",
+  "02012",
+  "02026",
 ]);
 
 export function revealPendingCardsForPlayer(

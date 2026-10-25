@@ -60,4 +60,51 @@ export type GameEvent =
   | { type: "DRONE_RETURNED"; playerId: string; cardCode: string }
   // Ataque anulado: el villano no puede sufrir daño mientras haya un Dron en
   // juego (habilidad de Ultron III).
-  | { type: "ATTACK_BLOCKED_BY_DRONES"; villainName: string };
+  | { type: "ATTACK_BLOCKED_BY_DRONES"; villainName: string }
+  // --- Villano de dos caras + Entorno con contadores (game/villainFaces.ts) ---
+  // Cambian los contadores del Entorno. delta es el cambio real (no baja de
+  // 0); counters, el total resultante.
+  | {
+      type: "ENVIRONMENT_COUNTERS_CHANGED";
+      environmentName: string;
+      counterName: string;
+      delta: number;
+      counters: number;
+    }
+  // El Entorno se quedó sin contadores: el villano y el Entorno se dan la
+  // vuelta (from/to son nombres del villano y del Entorno).
+  | {
+      type: "VILLAIN_FLIPPED";
+      from: string;
+      to: string;
+      environmentFrom: string;
+      environmentTo: string;
+    }
+  // Una Interrupción obligada sustituye la activación del villano por mover
+  // contadores del Entorno (Norman ataca → Infamia; Duende maquina → Locura).
+  | {
+      type: "VILLAIN_ACTIVATION_REPLACED";
+      villainName: string;
+      replaced: "ATTACK" | "SCHEME";
+      counterName: string;
+      delta: number;
+    }
+  // El daño que iba a sufrir el villano se sustituye por quitar contadores del
+  // Entorno (Norman Osborn). amount = daño sustituido.
+  | {
+      type: "VILLAIN_DAMAGE_REPLACED";
+      villainName: string;
+      amount: number;
+      counterName: string;
+    }
+  // --- Esbirros y biblioteca ---
+  // Un esbirro entra en juego por un efecto de carta o en la preparación.
+  | {
+      type: "MINION_ENTERED_PLAY";
+      minionId: string;
+      cardId: string;
+      name: string;
+      playerId: string;
+    }
+  // Se descartan cartas de la cima de la biblioteca simulada de un jugador.
+  | { type: "PLAYER_DECK_MILLED"; playerId: string; count: number };

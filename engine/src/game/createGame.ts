@@ -6,6 +6,13 @@ import type {
   VillainState,
 } from "../domain/types";
 import { getScenario } from "../scenarios";
+import { mainSchemeStartingThreat } from "./mainScheme";
+import { putEncounterMinionIntoPlay } from "./putCardIntoPlay";
+import {
+  initialEnvironment,
+  revealVillainFace,
+  stageFace,
+} from "./villainFaces";
 
 export interface PlayerSetup {
   id: string;
@@ -89,25 +96,30 @@ export function createGame(
   }
 
   const health = startStage.healthPerPlayer * playerCount;
+  // Villano de dos caras (escenario con Entorno de contadores): empieza por la
+  // cara A (Norman Osborn), igual que su Entorno (Empresa criminal).
+  const environment = initialEnvironment(scenario, playerCount);
+  const { def: startFace } = stageFace(scenario, startStage, "A");
   const villain: VillainState = {
-    cardId: startStage.cardId,
+    cardId: startFace.cardId,
     name: scenario.villainName,
     stage: startStage.stage,
     health,
     maxHealth: health,
-    attack: startStage.attack,
-    scheme: startStage.scheme,
+    attack: startFace.attack,
+    scheme: startFace.scheme,
     tough: startStage.tough,
     attachments: [],
     immuneWhileDronesPresent: startStage.immuneWhileDronesPresent ?? false,
     droneBonus: startStage.droneBonus ?? 0,
+    ...(environment !== undefined && { face: "A" as const }),
   };
 
   const mainScheme: SchemeState = {
     id: scenario.mainScheme.id,
     cardId: scenario.mainScheme.cardId,
     name: scenario.mainScheme.name,
-    threat: scenario.mainScheme.startingThreat,
+    threat: mainSchemeStartingThreat(scenario.mainScheme, playerCount),
     threatToComplete:
       scenario.mainScheme.threatToCompletePerPlayer * playerCount,
     escalationThreat: scenario.mainScheme.escalationThreat,
@@ -134,7 +146,9 @@ export function createGame(
     ? players.map((p) => ({ ...p, stunned: true }))
     : players;
 
-  return {
+  let state: GameState = {
+    scenarioId: scenario.id,
+    ...(environment !== undefined && { environment }),
     round: 1,
     phase: { name: "PLAYER_PHASE" },
     difficulty,
@@ -149,6 +163,20 @@ export function createGame(
     reservedNemesis: null,
     eventLog: [],
   };
+
+  // Esbirros de preparación (La fórmula mutagénica: un Esclavo duende por
+  // jugador), sacados del mazo de encuentros. No se registran en el eventLog:
+  // son parte del estado inicial, igual que los planes secundarios de inicio.
+  for (const player of players) {
+    for (const cardId of scenario.setupMinionsPerPlayer ?? []) {
+      state = putEncounterMinionIntoPlay(state, cardId, player.id).state;
+    }
+  }
+
+  // "Cuando se muestre" del estadio inicial declarado en datos (p.ej. La
+  // fórmula mutagénica en Experto empieza en II y reparte 2 cartas de
+  // encuentro a cada jugador; se revelan en el paso 4 de la primera ronda).
+  return revealVillainFace(state, startFace).state;
 }
 
 /**

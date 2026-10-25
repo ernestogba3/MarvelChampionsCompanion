@@ -32,6 +32,8 @@ import {
     playCardFromHand,
     discardCardFromHand,
     createDrone,
+    adjustEnvironmentCounters,
+    putEncounterMinionIntoPlay,
 } from 'engine';
 import type { GameState } from 'engine';
 import { loadGame, saveGame } from '../../storage/gameStorage';
@@ -127,6 +129,9 @@ export default function GameScreen() {
     const [schemeThwartInputs, setSchemeThwartInputs] = useState<Record<string, string>>({});
     const [encounterPicks, setEncounterPicks] = useState<string[]>([]);
     const [modalCardId, setModalCardId] = useState<string | null>(null);
+    // Jugador para el que se está eligiendo un esbirro que poner en juego
+    // (efectos de carta guiados: "pon en juego el esbirro enfrentado a ti").
+    const [minionPickerPlayerId, setMinionPickerPlayerId] = useState<string | null>(null);
 
     const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
     const maxWidthFromScreen = screenWidth - 48;
@@ -212,6 +217,26 @@ export default function GameScreen() {
             );
             return;
         }
+        await persist(next);
+    }
+
+    // Contadores del Entorno (Negocios arriesgados) para los efectos de carta
+    // guiados. Si se queda a 0, el motor da la vuelta al villano y al Entorno.
+    async function handleEnvironmentCounters(delta: number) {
+        if (!state) return;
+        const { state: next } = runAndLog(adjustEnvironmentCounters, state, delta);
+        await persist(next);
+    }
+
+    async function handlePutMinion(cardId: string) {
+        if (!state || !minionPickerPlayerId) return;
+        const { state: next } = runAndLog(
+            putEncounterMinionIntoPlay,
+            state,
+            cardId,
+            minionPickerPlayerId,
+        );
+        setMinionPickerPlayerId(null);
         await persist(next);
     }
 
@@ -343,7 +368,9 @@ export default function GameScreen() {
                     {outcome === 'WIN' ? '¡HAS GANADO!' : 'HAS PERDIDO'}
                 </Text>
                 <Text className="font-sans text-gris-pizarra text-base mt-4 text-center">
-                    {outcome === 'WIN' ? 'Has derrotado a Rino.' : 'El plan principal se ha completado.'}
+                    {outcome === 'WIN'
+                        ? `Has derrotado a ${state.villain.name}.`
+                        : 'El plan principal se ha completado.'}
                 </Text>
             </View>
         );
@@ -395,6 +422,23 @@ export default function GameScreen() {
     // ¿Este villano usa Drones? Hoy solo Ultron. Al añadir más villanos con
     // drones, amplía esta condición (o expón un flag del escenario).
     const villainUsesDrones = state.villain.name === 'Ultron';
+
+    // Entorno con contadores (Negocios arriesgados). Ausente en el resto.
+    const environment = state.environment;
+
+    // Esbirros que se pueden poner en juego por un efecto de carta: los que
+    // quedan en el mazo o el descarte de encuentros, agrupados por carta.
+    const availableMinions = (() => {
+        const counts = new Map<string, number>();
+        for (const id of [...state.encounterDeck, ...state.encounterDiscard]) {
+            if (getCardDefinition(id)?.type === 'MINION') {
+                counts.set(id, (counts.get(id) ?? 0) + 1);
+            }
+        }
+        return [...counts.entries()];
+    })();
+    const minionPickerPlayer =
+        state.players.find((p) => p.id === minionPickerPlayerId) ?? null;
 
     return (
         <>
@@ -479,6 +523,48 @@ export default function GameScreen() {
                     </View>
                 </View>
 
+                {/* ENTORNO CON CONTADORES (Negocios arriesgados) */}
+                {environment && (
+                    <View className="bg-crema/5 rounded-2xl p-4 flex-row gap-3 items-center">
+                        <CardThumb
+                            cardId={environment.cardId}
+                            onPress={() => setModalCardId(environment.cardId)}
+                        />
+                        <View className="flex-1 gap-2">
+                            <View className="flex-row justify-between items-center">
+                                <Text className="font-sans-bold text-crema text-base">
+                                    {environment.name}
+                                </Text>
+                                <Text className="font-sans-semibold text-dorado text-sm">
+                                    {environment.counters} {environment.counterName}
+                                </Text>
+                            </View>
+                            <Text className="font-sans text-gris-pizarra text-[11px]">
+                                Ajusta los contadores cuando una carta lo indique. Al llegar a 0,
+                                el villano y el Entorno se dan la vuelta.
+                            </Text>
+                            <View className="flex-row gap-2">
+                                <Pressable
+                                    onPress={() => handleEnvironmentCounters(-1)}
+                                    className="border border-crema/20 rounded-lg py-1.5 items-center flex-1"
+                                >
+                                    <Text className="font-sans-bold text-crema text-sm">
+                                        −1 {environment.counterName}
+                                    </Text>
+                                </Pressable>
+                                <Pressable
+                                    onPress={() => handleEnvironmentCounters(1)}
+                                    className="border border-crema/20 rounded-lg py-1.5 items-center flex-1"
+                                >
+                                    <Text className="font-sans-bold text-crema text-sm">
+                                        +1 {environment.counterName}
+                                    </Text>
+                                </Pressable>
+                            </View>
+                        </View>
+                    </View>
+                )}
+
                 {/* HÉROES: uno por jugador */}
                 {state.players.map((p) => {
                     const displayName = p.form === 'HERO' ? p.heroName : p.alterEgoName;
@@ -535,6 +621,16 @@ export default function GameScreen() {
                                 >
                                     <Text className="font-sans-semibold text-dorado text-sm">
                                         Crear Dron (cima del mazo)
+                                    </Text>
+                                </Pressable>
+                            )}
+                            {availableMinions.length > 0 && (
+                                <Pressable
+                                    onPress={() => setMinionPickerPlayerId(p.id)}
+                                    className="border border-crema/20 rounded-lg py-2 items-center mt-1"
+                                >
+                                    <Text className="font-sans-semibold text-crema text-sm">
+                                        Poner esbirro en juego (efecto de carta)
                                     </Text>
                                 </Pressable>
                             )}
@@ -867,6 +963,59 @@ export default function GameScreen() {
                     </View>
                 )}
             </ScrollView>
+
+            {/* MODAL: ELEGIR ESBIRRO QUE PONER EN JUEGO */}
+            <Modal
+                visible={minionPickerPlayer !== null}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMinionPickerPlayerId(null)}
+            >
+                <View
+                    className="flex-1 justify-center px-6"
+                    style={{ backgroundColor: 'rgba(10, 15, 30, 0.95)' }}
+                >
+                    <View className="bg-azul-noche border border-crema/20 rounded-2xl p-4 gap-3">
+                        <Text className="font-sans-bold text-crema text-base">
+                            Esbirro enfrentado a {minionPickerPlayer?.heroName}
+                        </Text>
+                        <Text className="font-sans text-gris-pizarra text-xs">
+                            Elige el esbirro que la carta pone en juego. Sale del mazo de
+                            encuentros (o de su descarte si no quedan copias en el mazo).
+                        </Text>
+                        <View style={{ maxHeight: 360 }}>
+                            <ScrollView contentContainerStyle={{ gap: 6 }}>
+                                {availableMinions.map(([cardId, count]) => {
+                                    const def = getCardDefinition(cardId);
+                                    return (
+                                        <Pressable
+                                            key={cardId}
+                                            onPress={() => handlePutMinion(cardId)}
+                                            className="border border-crema/20 rounded-lg p-2 flex-row gap-3 items-center"
+                                        >
+                                            <CardThumb cardId={cardId} size="sm" />
+                                            <View className="flex-1">
+                                                <Text className="font-sans-semibold text-crema text-sm">
+                                                    {def?.nameEs ?? cardId}
+                                                </Text>
+                                                <Text className="font-sans text-gris-pizarra text-xs">
+                                                    {count} {count === 1 ? 'disponible' : 'disponibles'}
+                                                </Text>
+                                            </View>
+                                        </Pressable>
+                                    );
+                                })}
+                            </ScrollView>
+                        </View>
+                        <Pressable
+                            onPress={() => setMinionPickerPlayerId(null)}
+                            className="border border-crema/20 rounded-lg py-2 items-center"
+                        >
+                            <Text className="font-sans-semibold text-crema text-sm">Cancelar</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
 
             {/* MODAL CON LA CARTA GRANDE */}
             <Modal

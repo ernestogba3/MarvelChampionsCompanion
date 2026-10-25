@@ -13,6 +13,11 @@ import {
   resolveGangUp,
   resolveShadowOfThePast,
 } from "./standardSet";
+import {
+  resolveAllInADaysWork,
+  resolveGoblinReinforcements,
+  resolveOscorpManufacturing,
+} from "./greenGoblinCards";
 type RevealResolver = (
   state: GameState,
   playerId: string,
@@ -27,6 +32,9 @@ const REVEAL_RESOLVERS: Record<string, RevealResolver> = {
   "01188": (state, playerId) => resolveCaughtOffGuard(state, playerId),
   "01189": (state, playerId) => resolveGangUp(state, playerId),
   "01190": (state) => resolveShadowOfThePast(state),
+  "02010": (state) => resolveOscorpManufacturing(state),
+  "02012": (state) => resolveAllInADaysWork(state),
+  "02026": (state) => resolveGoblinReinforcements(state),
 };
 export function resolveRevealedCard(
   state: GameState,

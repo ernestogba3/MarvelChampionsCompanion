@@ -4,8 +4,9 @@ import { dealDamageToVillain } from "./villainDamage";
 import { advanceVillainStage } from "./villainStages";
 import { canRemoveThreatFromMainScheme } from "./sideSchemes";
 import { canAttackVillain } from "./combat";
-import { getScenarioByVillainName } from "../scenarios";
+import { getScenarioForState } from "../scenarios";
 import { isMainSchemeFinalStage } from "./mainScheme";
+import { replaceVillainDamage } from "./villainFaces";
 
 /**
  * Represalia (Retaliate) N: devuelve N de daño al jugador atacante. Se aplica
@@ -79,6 +80,15 @@ export function attackVillain(
     };
   }
 
+  // Interrupción obligada de Norman Osborn (Negocios arriesgados): el daño
+  // que iba a sufrir se sustituye por quitar esa misma cantidad de Infamia
+  // del Entorno (lo que puede darle la vuelta al Duende Verde). No llega a
+  // sufrir daño, así que tampoco hay Represalia ni avance de estadio.
+  const replaced = replaceVillainDamage(state, amount);
+  if (replaced !== null) {
+    return replaced;
+  }
+
   // Resistente (Toughness): si el villano tiene un status card Tough en juego,
   // este ataque no le hace NADA de daño (no se reduce "en N") y el Tough se
   // descarta. Confirmado contra el RRG v1.7: Rino (III) entra en juego con
@@ -118,7 +128,7 @@ export function attackVillain(
     // la dificultad y la definición del escenario), avanza al siguiente
     // estadio. En el estadio final no se avanza: checkGameOutcome lo marca
     // como WIN. Genérico para cualquier villano registrado (ver scenarios/).
-    const scenario = getScenarioByVillainName(afterRetaliate.villain.name);
+    const scenario = getScenarioForState(afterRetaliate);
     if (scenario !== undefined) {
       const finalStage = scenario.progression[afterRetaliate.difficulty].final;
       if (afterRetaliate.villain.stage !== finalStage) {
@@ -138,7 +148,7 @@ export function attackVillain(
 export type GameOutcome = "ONGOING" | "WIN" | "LOSS";
 
 export function checkGameOutcome(state: GameState): GameOutcome {
-  const scenario = getScenarioByVillainName(state.villain.name);
+  const scenario = getScenarioForState(state);
   const mainScheme = state.schemes.find((s) => s.isMain);
 
   // Completar el plan principal es derrota solo si está en su ETAPA FINAL. En

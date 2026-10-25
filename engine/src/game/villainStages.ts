@@ -5,7 +5,12 @@ import type {
   VillainState,
 } from "../domain/types.ts";
 import type { GameEvent } from "../events/types.ts";
-import { getScenarioByVillainName } from "../scenarios";
+import { getScenarioForState } from "../scenarios";
+import {
+  faceForNextStage,
+  revealVillainFace,
+  stageFace,
+} from "./villainFaces";
 
 /**
  * Avanza el villano a su SIGUIENTE estadio (I→II→III) leyendo la definición
@@ -25,7 +30,7 @@ export function advanceVillainStage(state: GameState): {
   state: GameState;
   events: GameEvent[];
 } {
-  const scenario = getScenarioByVillainName(state.villain.name);
+  const scenario = getScenarioForState(state);
   if (scenario === undefined) {
     return { state, events: [] };
   }
@@ -49,12 +54,22 @@ export function advanceVillainStage(state: GameState): {
 
   const health = nextStage.healthPerPlayer * state.players.length;
   const newDroneBonus = nextStage.droneBonus ?? 0;
+  // Villano de dos caras: el nuevo estadio entra por la cara que indique
+  // faceForNextStage (asunción documentada en game/villainFaces.ts). Un
+  // villano normal se queda en su única cara (A).
+  const face =
+    state.villain.face !== undefined
+      ? faceForNextStage(state.villain.face)
+      : undefined;
+  const { def: faceDef, name } = stageFace(scenario, nextStage, face ?? "A");
   const newVillain: VillainState = {
     ...state.villain,
-    cardId: nextStage.cardId,
+    name,
+    ...(face !== undefined && { face }),
+    cardId: faceDef.cardId,
     stage: nextStage.stage,
-    attack: nextStage.attack,
-    scheme: nextStage.scheme,
+    attack: faceDef.attack,
+    scheme: faceDef.scheme,
     health,
     maxHealth: health,
     tough: nextStage.tough,
@@ -120,16 +135,22 @@ export function advanceVillainStage(state: GameState): {
             : m,
         );
 
-  return {
-    state: {
-      ...state,
-      villain: newVillain,
-      schemes: [...state.schemes, ...newSideSchemes],
-      players: newPlayers,
-      minions: newMinions,
-    },
-    events,
+  const advanced: GameState = {
+    ...state,
+    villain: newVillain,
+    schemes: [...state.schemes, ...newSideSchemes],
+    players: newPlayers,
+    minions: newMinions,
   };
+
+  // "Cuando se muestre esta carta" del nuevo estadio declarado en datos
+  // (daño a los jugadores, cartas de encuentro repartidas).
+  const { state: revealed, events: revealEvents } = revealVillainFace(
+    advanced,
+    faceDef,
+  );
+
+  return { state: revealed, events: [...events, ...revealEvents] };
 }
 
 // ---------------------------------------------------------------------------

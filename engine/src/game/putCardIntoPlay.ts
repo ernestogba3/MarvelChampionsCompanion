@@ -25,6 +25,18 @@ const ATTACHMENT_FACTORIES: Record<
   "01100": createEnhancedIvoryHorn,
 };
 
+/**
+ * Id que no colisiona con ninguno de `taken`: `base` si está libre; si no,
+ * `base-2`, `base-3`… (p.ej. dos copias del mismo plan secundario en juego,
+ * o un esbirro nuevo tras derrotar a otro con el mismo índice).
+ */
+function uniqueId(base: string, taken: string[]): string {
+  if (!taken.includes(base)) return base;
+  let n = 2;
+  while (taken.includes(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}
+
 export function putCardIntoPlay(
   state: GameState,
   cardId: string,
@@ -36,10 +48,14 @@ export function putCardIntoPlay(
   }
   if (def.type === "MINION") {
     const factory = MINION_FACTORIES[cardId];
+    const id = uniqueId(
+      `${cardId}-${state.minions.length}`,
+      state.minions.map((m) => m.id),
+    );
     const minion = factory
-      ? factory(`${cardId}-${state.minions.length}`, playerId)
+      ? factory(id, playerId)
       : {
-          id: `${cardId}-${state.minions.length}`,
+          id,
           cardId,
           name: def.nameEs,
           attack: def.attack ?? 0,
@@ -48,7 +64,7 @@ export function putCardIntoPlay(
           maxHealth: def.health ?? 1,
           engagedWith: playerId,
           tough: false,
-          guard: false,
+          guard: def.guard ?? false,
         };
     return {
       state: { ...state, minions: [...state.minions, minion] },
@@ -71,11 +87,18 @@ export function putCardIntoPlay(
     };
   }
   if (def.type === "SIDE_SCHEME") {
+    // Amenaza inicial ×nº de jugadores si la carta lleva el icono [per_hero].
+    const startingThreat =
+      (def.startingThreat ?? 0) *
+      (def.startingThreatPerPlayer === true ? state.players.length : 1);
     const scheme = {
-      id: `${cardId}-side`,
+      id: uniqueId(
+        `${cardId}-side`,
+        state.schemes.map((s) => s.id),
+      ),
       cardId,
       name: def.nameEs,
-      threat: def.startingThreat ?? 0,
+      threat: startingThreat,
       threatToComplete: 0,
       escalationThreat: 0,
       isMain: false,
@@ -89,4 +112,57 @@ export function putCardIntoPlay(
     };
   }
   return { state, events: [] };
+}
+
+/**
+ * Pone en juego, enfrentado a un jugador, un esbirro sacado del mazo de
+ * encuentros (o, si no queda copia ahí, de su descarte). Es la acción de la
+ * app para los efectos de carta guiados que dicen "pon en juego el esbirro
+ * enfrentado a ti" (aumentos con estrella, Ambición cruel, Horda imparable…)
+ * y la que usa la preparación (Esclavos duende de La fórmula mutagénica).
+ *
+ * Carta inexistente, que no sea esbirro o sin copias disponibles → estado
+ * intacto.
+ */
+export function putEncounterMinionIntoPlay(
+  state: GameState,
+  cardId: string,
+  playerId: string,
+): { state: GameState; events: GameEvent[] } {
+  if (getCardDefinition(cardId)?.type !== "MINION") {
+    return { state, events: [] };
+  }
+  let from: GameState;
+  const deckIdx = state.encounterDeck.indexOf(cardId);
+  if (deckIdx >= 0) {
+    const encounterDeck = [...state.encounterDeck];
+    encounterDeck.splice(deckIdx, 1);
+    from = { ...state, encounterDeck };
+  } else {
+    const discardIdx = state.encounterDiscard.indexOf(cardId);
+    if (discardIdx < 0) {
+      return { state, events: [] };
+    }
+    const encounterDiscard = [...state.encounterDiscard];
+    encounterDiscard.splice(discardIdx, 1);
+    from = { ...state, encounterDiscard };
+  }
+  const { state: next, events } = putCardIntoPlay(from, cardId, playerId);
+  const minion = next.minions[next.minions.length - 1];
+  if (minion === undefined) {
+    return { state, events: [] };
+  }
+  return {
+    state: next,
+    events: [
+      ...events,
+      {
+        type: "MINION_ENTERED_PLAY",
+        minionId: minion.id,
+        cardId,
+        name: minion.name,
+        playerId,
+      },
+    ],
+  };
 }

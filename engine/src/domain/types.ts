@@ -38,6 +38,11 @@ export interface PlayerState {
 
 export type VillainStage = "I" | "II" | "III";
 
+// Cara visible de una carta de dos caras (villano o Entorno de Negocios
+// arriesgados): "A" = cara "a" de marvelcdb (Norman Osborn / Empresa
+// criminal), "B" = cara "b" (Duende Verde / Estado de locura).
+export type CardFace = "A" | "B";
+
 export interface VillainAttachmentState {
   id: string;
   cardId: string;
@@ -71,6 +76,24 @@ export interface VillainState {
   // (Ultron III = 1). El bonus del acople "Drones mejorados" NO se incluye
   // aquí (se aplica a mano). undefined/0 = sin bonus.
   droneBonus?: number;
+  // Villano de dos caras (Negocios arriesgados): cara visible. Las
+  // habilidades de cada cara se leen de la definición del escenario (ver
+  // game/villainFaces.ts). undefined = villano de una sola cara.
+  face?: CardFace;
+}
+
+/**
+ * Carta de Entorno con contadores que está en juego junto al villano
+ * (Negocios arriesgados: Empresa criminal ↔ Estado de locura). Cuando se
+ * queda sin contadores, se da la vuelta junto con el villano.
+ */
+export interface EnvironmentState {
+  cardId: string;
+  name: string;
+  face: CardFace;
+  // Nombre del tipo de contador de la cara visible ("Infamia" / "Locura").
+  counterName: string;
+  counters: number;
 }
 
 export interface SchemeState {
@@ -134,6 +157,15 @@ export type GamePhase =
   | { name: "VILLAIN_PHASE"; step: VillainPhaseStep };
 
 export interface GameState {
+  // Id del escenario (scenarios/). Es la clave para recuperar su definición
+  // en tiempo de ejecución; el nombre del villano no basta porque cambia al
+  // darse la vuelta (Norman Osborn ↔ Duende Verde) y dos escenarios pueden
+  // compartir villano. Opcional: las partidas guardadas antiguas no lo traen
+  // y se resuelven por el nombre del villano (ver getScenarioForState).
+  scenarioId?: string;
+  // Entorno con contadores en juego (Negocios arriesgados). Ausente en los
+  // escenarios sin él.
+  environment?: EnvironmentState;
   round: number;
   phase: GamePhase;
   difficulty: Difficulty;

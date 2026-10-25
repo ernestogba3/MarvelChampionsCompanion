@@ -344,14 +344,18 @@ export default function IndexScreen() {
               <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
                 Villano
               </Text>
-              <View className="flex-row gap-2">
+              {/* En rejilla de 2 columnas: con más de 3 villanos ya no caben en
+                  una fila. Si el escenario tiene nombre propio (dos escenarios
+                  del Duende Verde), se muestra bajo el villano. */}
+              <View className="flex-row flex-wrap gap-2">
                 {ALL_SCENARIOS.map((sc) => {
                   const active = scenarioId === sc.id;
                   return (
                     <Pressable
                       key={sc.id}
                       onPress={() => setScenarioId(sc.id)}
-                      className={`flex-1 rounded-xl py-3 items-center border ${active
+                      style={{ flexBasis: '48%', flexGrow: 1 }}
+                      className={`rounded-xl py-3 px-2 items-center border ${active
                         ? 'bg-dorado/15 border-dorado'
                         : 'border-crema/20'
                         }`}
@@ -362,6 +366,14 @@ export default function IndexScreen() {
                       >
                         {sc.villainName}
                       </Text>
+                      {sc.scenarioName ? (
+                        <Text
+                          className="font-sans text-gris-pizarra text-[11px] text-center"
+                          numberOfLines={1}
+                        >
+                          {sc.scenarioName}
+                        </Text>
+                      ) : null}
                     </Pressable>
                   );
                 })}

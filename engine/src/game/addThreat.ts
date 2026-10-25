@@ -1,19 +1,20 @@
 import type { GameState } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import { applyEffects } from "../effects/applyEffect";
-import { advanceMainSchemeIfComplete } from "./mainScheme";
+import {
+  advanceMainSchemeIfComplete,
+  mainSchemeThreatPerRound,
+} from "./mainScheme";
 
 export function addThreatStep(state: GameState): {
   state: GameState;
   events: GameEvent[];
 } {
-  const mainScheme = state.schemes.find((s) => s.isMain)!;
-  // La aceleración impresa escala por número de jugadores; los tokens de
-  // aceleración (por mazo de encuentros agotado) son un bonus fijo, no se
-  // multiplican por jugadores.
-  const amount =
-    mainScheme.escalationThreat * state.players.length +
-    mainScheme.accelerationTokens;
+  // La aceleración impresa escala por número de jugadores (salvo la variable
+  // "X" de algunos planes); los tokens de aceleración (por mazo de encuentros
+  // agotado) y los iconos de Aceleración son un bonus fijo. Ver
+  // mainSchemeThreatPerRound.
+  const amount = mainSchemeThreatPerRound(state);
   const { state: afterThreat, events } = applyEffects(state, [
     { type: "ADD_THREAT", target: { kind: "MAIN_SCHEME" }, amount },
   ]);
