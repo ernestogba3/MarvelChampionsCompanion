@@ -8,16 +8,29 @@ import {
   initDatabase,
   loadDecks,
   loadDeck,
+  saveDeck,
 } from '../storage/gameStorage';
 import { getHeroCatalog, type HeroCatalogEntry } from '../services/heroCatalog';
+import { getPackCards } from '../services/packDeck';
 import {
   createGame,
   serializeGameState,
   deserializeGameState,
   initPlayerLibrary,
   ALL_SCENARIOS,
+  buildPackDeck,
+  packAspects,
+  deckSize,
+  DECK_MIN_CARDS,
+  DECK_MAX_CARDS,
 } from 'engine';
-import type { GameState, PlayerSetup, DeckDefinition } from 'engine';
+import type {
+  GameState,
+  PlayerSetup,
+  DeckDefinition,
+  AspectFaction,
+  PackCardInfo,
+} from 'engine';
 
 type Difficulty = 'STANDARD' | 'EXPERT';
 
@@ -89,6 +102,12 @@ export default function IndexScreen() {
   // "decks"). Se refrescan al enfocar la pantalla, para que los mazos
   // creados en Colección aparezcan al volver aquí.
   const [decks, setDecks] = useState<DeckDefinition[]>([]);
+  // Catálogo para el "mazo del pack" (mazo por defecto de un héroe sin mazo
+  // guardado) y aspecto elegido por slot (undefined = el del pack).
+  const [packCards, setPackCards] = useState<PackCardInfo[]>([]);
+  const [packAspectChoice, setPackAspectChoice] = useState<
+    (AspectFaction | null | undefined)[]
+  >([undefined, undefined, undefined, undefined]);
 
   async function refresh() {
     const saved = await loadGame();
@@ -110,10 +129,42 @@ export default function IndexScreen() {
       setCatalog(result.heroes);
       setCatalogFetchedAt(result.fetchedAt);
       setCatalogStatus('ready');
+      // Mismo catálogo (ya en caché tras getHeroCatalog): no vuelve a
+      // descargarse.
+      setPackCards(await getPackCards());
     } catch {
       setCatalog([]);
       setCatalogStatus('error');
     }
+  }
+
+  /**
+   * Mazo del pack del héroe del slot con el aspecto elegido. Si ya está
+   * guardado (de una partida anterior), esa versión. null si no hay héroe o
+   * catálogo.
+   */
+  function packDeckFor(index: number, slot: PlayerSetup): DeckDefinition | null {
+    if (!slot.heroCardId || packCards.length === 0) return null;
+    const generated = buildPackDeck(
+      slot.heroCardId,
+      packCards,
+      packAspectChoice[index],
+    );
+    if (generated === null) return null;
+    const saved = decks.find((d) => d.id === generated.id);
+    if (saved) return saved;
+    const aspectLabel = generated.aspect
+      ? ASPECT_LABELS[generated.aspect] ?? generated.aspect
+      : 'Sin aspecto';
+    return {
+      ...generated,
+      name: `${slot.heroName} · Mazo del pack (${aspectLabel})`,
+    };
+  }
+
+  function choosePackAspect(index: number, aspect: AspectFaction) {
+    setPackAspectChoice((prev) => prev.map((a, i) => (i === index ? aspect : a)));
+    clearDeck(index);
   }
 
   async function reloadDecks() {
@@ -188,6 +239,7 @@ export default function IndexScreen() {
       }),
     );
     updateQuery(index, hero.heroName);
+    setPackAspectChoice((prev) => prev.map((a, i) => (i === index ? undefined : a)));
   }
 
   function selectDeck(index: number, deck: DeckDefinition) {
@@ -237,6 +289,18 @@ export default function IndexScreen() {
       alterEgoCardId: s.alterEgoCardId?.trim() || undefined,
       deckId: s.deckId || undefined,
     }));
+    // Quien no ha elegido un mazo guardado juega con el mazo del pack de su
+    // héroe. Se guarda (id fijo por héroe y aspecto, sin pisar una versión ya
+    // guardada) para poder verlo durante la partida y en Colección.
+    for (const [i, slot] of activeSlots.entries()) {
+      if (slot.deckId) continue;
+      const packDeck = packDeckFor(i, slot);
+      if (packDeck === null) continue;
+      if (!decks.some((d) => d.id === packDeck.id)) {
+        await saveDeck(packDeck);
+      }
+      slot.deckId = packDeck.id;
+    }
     const missing = activeSlots.find((s) => !s.heroName);
     if (missing) {
       Alert.alert(
@@ -445,9 +509,18 @@ export default function IndexScreen() {
                 // los suyos (coincidencia por heroCode); si no hay héroe
                 // elegido, los enseñamos todos (elegir mazo también fija
                 // el héroe, ver selectDeck).
+                // Los mazos del pack guardados se muestran como "Mazo del
+                // pack", no repetidos en esta lista.
+                const savedDecks = decks.filter((d) => !d.id.startsWith('pack-'));
                 const decksForSlot = slot.heroCardId
-                  ? decks.filter((d) => d.heroCode === slot.heroCardId)
-                  : decks;
+                  ? savedDecks.filter((d) => d.heroCode === slot.heroCardId)
+                  : savedDecks;
+                const packDeck = packDeckFor(index, slot);
+                const packSize = packDeck ? deckSize(packDeck) : 0;
+                const aspectsInPack = slot.heroCardId
+                  ? packAspects(slot.heroCardId, packCards)
+                  : [];
+                const packSelected = packDeck !== null && !slot.deckId;
                 return (
                   <View key={slot.id} className="bg-crema/5 rounded-2xl p-3 gap-2">
                     <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
@@ -509,18 +582,62 @@ export default function IndexScreen() {
 
                     <View className="gap-1 mt-1">
                       <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
-                        Mazo (opcional)
+                        Mazo
                       </Text>
-                      {decks.length === 0 ? (
-                        <Text className="font-sans text-gris-pizarra text-xs">
-                          Todavía no tienes mazos guardados. Créalos en la pestaña
-                          Colección.
-                        </Text>
-                      ) : decksForSlot.length === 0 ? (
-                        <Text className="font-sans text-gris-pizarra text-xs">
-                          No tienes ningún mazo para este héroe. Crea uno en la pestaña
-                          Colección.
-                        </Text>
+                      {packDeck !== null && (
+                        <Pressable
+                          onPress={() => clearDeck(index)}
+                          className="rounded-lg px-3 py-2 gap-1"
+                          style={{
+                            backgroundColor: packSelected
+                              ? 'rgba(212,162,76,0.2)'
+                              : 'rgba(255,255,255,0.05)',
+                            borderWidth: 1,
+                            borderColor: packSelected ? '#D4A24C' : 'transparent',
+                          }}
+                        >
+                          <Text className="font-sans-semibold text-crema text-sm">
+                            Mazo del pack
+                          </Text>
+                          <Text className="font-sans text-gris-pizarra text-xs">
+                            {packDeck.aspect
+                              ? ASPECT_LABELS[packDeck.aspect] ?? packDeck.aspect
+                              : 'Sin aspecto'}
+                            {` · ${packSize} cartas`}
+                            {packSize < DECK_MIN_CARDS || packSize > DECK_MAX_CARDS
+                              ? ` (fuera de ${DECK_MIN_CARDS}-${DECK_MAX_CARDS})`
+                              : ''}
+                          </Text>
+                          {packSelected && aspectsInPack.length > 1 && (
+                            <View className="flex-row flex-wrap gap-1 mt-1">
+                              {aspectsInPack.map(({ aspect }) => {
+                                const active = packDeck.aspect === aspect;
+                                return (
+                                  <Pressable
+                                    key={aspect}
+                                    onPress={() => choosePackAspect(index, aspect)}
+                                    className={`rounded-full px-3 py-1 border ${active
+                                      ? 'bg-dorado/20 border-dorado'
+                                      : 'border-crema/20'
+                                      }`}
+                                  >
+                                    <Text className="font-sans text-crema text-xs">
+                                      {ASPECT_LABELS[aspect] ?? aspect}
+                                    </Text>
+                                  </Pressable>
+                                );
+                              })}
+                            </View>
+                          )}
+                        </Pressable>
+                      )}
+                      {decksForSlot.length === 0 ? (
+                        packDeck === null && (
+                          <Text className="font-sans text-gris-pizarra text-xs">
+                            Sin mazo: elige un héroe del catálogo para jugar con el
+                            mazo de su pack.
+                          </Text>
+                        )
                       ) : (
                         <View className="gap-1">
                           {decksForSlot.map((d) => {

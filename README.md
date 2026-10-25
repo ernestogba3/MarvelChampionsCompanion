@@ -21,6 +21,8 @@ Phasekeeper es una app móvil para acompañar una partida **física** de _Marvel
 
 **Héroes:** están todos los publicados. La app descarga el catálogo completo de [marvelcdb](https://es.marvelcdb.com) (en español y con caché de 30 días), así que cualquier héroe se puede elegir sin trabajo extra en el código.
 
+**Mazo del pack:** si eliges un héroe y no tienes un mazo guardado para él, la app le monta uno automáticamente con datos de marvelcdb. Lleva sus cartas propias exactas más las cartas de un aspecto y las básicas que trae su pack; el aspecto lo puedes cambiar. No es el mazo preconstruido impreso: marvelcdb no publica esas listas y algunas usan cartas del Core Set. En el Core Set y en las cajas con dos héroes puede quedar fuera del rango de 40 a 50 cartas.
+
 ## Cómo funciona: el modelo "compañero"
 
 Esta decisión de diseño condiciona todo lo demás: **la app arbitra el lado del villano, no el tuyo**.
@@ -33,11 +35,11 @@ Esta decisión de diseño condiciona todo lo demás: **la app arbitra el lado de
 
 | Pestaña       | Qué hace                                                                                                                                                                                                 |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Inicio**    | Eliges escenario, dificultad, número de jugadores, héroe de cada uno (con buscador) y, si quieres, un mazo guardado                                                                                      |
+| **Inicio**    | Eliges escenario, dificultad, número de jugadores, héroe de cada uno (con buscador) y su mazo: el del pack (con el aspecto que prefieras) o uno guardado                                                |
 | **Partida**   | El asistente de la ronda paso a paso: amenaza, activación del villano, reparto y revelado de encuentros, ataques, frustrar, Entorno, varios villanos, biblioteca simulada (robar, jugar, descartar), explicación de cada evento |
 | **Cartas**    | Catálogo de las cartas de encuentro con su imagen                                                                                                                                                         |
 | **Reglas**    | Glosario de palabras clave (español / inglés) con buscador                                                                                                                                                |
-| **Colección** | Construcción de mazos con validación de las reglas de mazo (aspecto, tamaño, copias)                                                                                                                     |
+| **Colección** | Tus mazos guardados (incluidos los del pack) con la validación de las reglas de mazo (aspecto, tamaño, copias) y un visor de cartas. El editor de mazos aún no está hecho                              |
 | **Más**       | Reiniciar la partida y enlace al reglamento                                                                                                                                                              |
 
 La partida se guarda sola en SQLite y se recupera al volver a abrir la app.
@@ -76,9 +78,9 @@ MarvelChampionsCompanion/
 │   │   ├── effects/                  # Sistema genérico de Effects
 │   │   ├── events/                   # GameEvent y log de eventos
 │   │   ├── explanations/             # Explicaciones en español + asistente paso a paso
-│   │   ├── deck/                     # Reglas de construcción de mazos
+│   │   ├── deck/                     # Reglas de mazos y "mazo del pack" de cada héroe
 │   │   └── persistence/              # Serialización y migración de partidas guardadas
-│   └── tests/                        # 299 tests de Vitest
+│   └── tests/                        # 307 tests de Vitest
 │
 ├── mobile/                          # App Expo
 │   ├── app/                          # Pantallas (Expo Router): Inicio, pestañas, editor de mazo
@@ -170,6 +172,9 @@ Todas están anotadas en [`docs/Content roadmap.md`](docs/Content%20roadmap.md):
   - las cartas que dependen de esos elementos.
 - **Encuentros en alter ego:** un jugador en alter ego todavía no recibe su carta de encuentro base en el paso 3.
 - **Tratados sin carta de aumento:** Agresión y Todos a una no le dan carta de aumento al villano.
+- **Mazos de jugador:**
+  - aún no hay editor de mazos ("Nuevo mazo" en Colección no lleva a ningún editor);
+  - Masacre solo recibe sus cartas propias, porque el aspecto "Pool" no está contemplado.
 - **Sets de némesis y obligaciones:** aún no existen. El hueco está preparado (`reservedNemesis`).
 - **The Wrecking Crew:** sin el modo "desafío extremo" (versión A y luego B) ni mezclas de versiones A/B.
 - **TC-014:** falta confirmar contra el reglamento físico en qué momento exacto se comprueba la derrota por amenaza.

@@ -118,6 +118,27 @@ Cada caja trae varios villanos/escenarios; se listan y verifican al llegar.
 Todos los héroes publicados ya están disponibles vía el catálogo en vivo de
 marvelcdb. No hay cola de implementación por héroe para lo que la app hace hoy.
 
+### Mazo del pack (hecho)
+
+Un héroe sin mazo guardado juega con su "mazo del pack"
+(`engine/src/deck/packDeck.ts`): sus cartas propias exactas + las de un
+aspecto y las básicas que trae su pack (aspecto elegible; por defecto, el que
+más copias trae). NO es el preconstruido impreso: marvelcdb no publica esas
+listas y algunas usan cartas del Core Set. Con los datos de marvelcdb, 59 de
+73 héroes quedan en 40-50 cartas; fuera de rango: los 5 del Core Set (57),
+las cajas con dos héroes (Sinister Motives, NeXt Evolution, Mutant Genesis,
+Agents of S.H.I.E.L.D., Civil War: 51-60), Gamora (37), Hombre Maravilla (33)
+y Masacre (16: el aspecto "Pool" no está contemplado). No se recorta: elegir
+qué quitar sería inventarse el mazo.
+
+Pendiente:
+- **Editor de mazos.** "Nuevo mazo" (Colección) navega a `/mazo/nuevo`,
+  pero en `mobile/app/mazo/[id].tsx` solo está el visor de solo lectura: el
+  editor no llegó al repositorio.
+- Preconstruidos oficiales, si se decide transcribirlos de los folletos
+  (verificados uno a uno).
+- Aspecto "Pool" (Masacre) en las reglas de mazo.
+
 ### Inventario — héroes del Core Set
 
 Spider-Man, Captain Marvel, She-Hulk, Iron Man, Black Panther.

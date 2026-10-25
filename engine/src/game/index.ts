@@ -108,6 +108,8 @@ export type {
   MissingCopies,
   DeckValidation,
 } from "../deck/deckRules";
+export { buildPackDeck, packAspects, deckSize } from "../deck/packDeck";
+export type { PackCardInfo } from "../deck/packDeck";
 // --- Biblioteca simulada del jugador ---
 export {
   initPlayerLibrary,

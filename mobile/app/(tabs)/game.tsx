@@ -718,7 +718,7 @@ export default function GameScreen() {
                                 </Pressable>
                                 <Pressable
                                     onPress={() => {
-                                        if (p.deckId) router.push(`/mazo-vista/${p.deckId}`);
+                                        if (p.deckId) router.push(`/mazo/${p.deckId}`);
                                     }}
                                     disabled={!hasDeck}
                                     className="border border-crema/20 rounded-lg py-2 items-center flex-1"

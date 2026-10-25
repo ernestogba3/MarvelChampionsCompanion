@@ -36,6 +36,7 @@ export interface RawCard {
   type_code: string;
   faction_code: string;
   card_set_code?: string | null;
+  pack_code?: string;
   deck_limit?: number;
   quantity?: number;
   is_unique?: boolean;
