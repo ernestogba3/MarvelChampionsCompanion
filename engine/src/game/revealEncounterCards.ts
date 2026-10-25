@@ -6,10 +6,8 @@ import {
   resolveRevealedCard,
 } from "./encounterResolution";
 import { putCardIntoPlay } from "./putCardIntoPlay";
-import {
-  discardEncounterCard,
-  resolveSignatureSchemeOverflows,
-} from "./multiVillain";
+import { discardEncounterCard } from "./encounterDeck";
+import { resolveSignatureSchemeOverflows } from "./multiVillain";
 
 // Las cartas con "Cuando se muestre" que el motor resuelve son las que tienen
 // resolución registrada en encounterResolution (una sola lista).
@@ -78,6 +76,7 @@ export function revealPendingCardsForPlayer(
 
   for (const cardId of updatedPlayer.faceDownEncounterCards) {
     const def = getCardDefinition(cardId);
+    let enteredPlay = false;
     if (
       def &&
       (def.type === "MINION" ||
@@ -87,6 +86,7 @@ export function revealPendingCardsForPlayer(
       const result = putCardIntoPlay(currentState, cardId, playerId);
       currentState = result.state;
       allEvents.push(...result.events);
+      enteredPlay = result.enteredPlay;
     }
     if (hasRevealResolver(cardId)) {
       const result = resolveRevealedCard(currentState, cardId, playerId);
@@ -109,8 +109,12 @@ export function revealPendingCardsForPlayer(
     currentState = overflow.state;
     allEvents.push(...overflow.events);
     // Al descarte del mazo de su villano (en escenarios de un solo villano,
-    // el descarte de siempre).
-    currentState = discardEncounterCard(currentState, cardId);
+    // el descarte de siempre), salvo que se haya quedado en juego: esa irá al
+    // descarte cuando salga de juego. Si no, al rebarajar el descarte la
+    // carta volvería al mazo mientras sigue en mesa.
+    if (!enteredPlay) {
+      currentState = discardEncounterCard(currentState, cardId);
+    }
   }
 
   currentState = {

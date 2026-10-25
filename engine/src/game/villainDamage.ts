@@ -1,6 +1,7 @@
 import type { GameState } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import { applyEffect } from "../effects/applyEffect";
+import { discardEncounterCard } from "./encounterDeck";
 export function dealDamageToVillain(
   state: GameState,
   amount: number,
@@ -29,10 +30,14 @@ export function consumeOneShotAttackAttachments(state: GameState): {
   const attachments = state.villain.attachments.filter(
     (a) => !a.discardAfterAttack,
   );
-  return {
-    state: { ...state, villain: { ...state.villain, attachments } },
-    events,
+  let next: GameState = {
+    ...state,
+    villain: { ...state.villain, attachments },
   };
+  for (const a of toDiscard) {
+    next = discardEncounterCard(next, a.cardId);
+  }
+  return { state: next, events };
 }
 export function resolveChargeAttack(state: GameState): {
   state: GameState;

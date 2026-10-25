@@ -234,34 +234,6 @@ export function removeDefeatedActiveVillain(
 }
 
 /**
- * Pone una carta de encuentro que sale de juego en el descarte del mazo de su
- * villano ("cuando una carta de encuentro sale de juego, va al descarte de su
- * mazo"). Si su villano ya fue derrotado, su mazo no existe y la carta sale de
- * la partida. En los escenarios de un solo villano, al descarte de siempre.
- */
-export function discardEncounterCard(
-  state: GameState,
-  cardId: string,
-): GameState {
-  const scenario = getScenarioForState(state);
-  if (!isMultiVillain(state) || scenario?.villains === undefined) {
-    return { ...state, encounterDiscard: [...state.encounterDiscard, cardId] };
-  }
-  const owner = scenario.villains.find((v) => v.encounterDeck.includes(cardId));
-  if (owner === undefined || owner.id === state.villain.villainId) {
-    return { ...state, encounterDiscard: [...state.encounterDiscard, cardId] };
-  }
-  return {
-    ...state,
-    reserveVillains: (state.reserveVillains ?? []).map((r) =>
-      r.villain.villainId === owner.id
-        ? { ...r, encounterDiscard: [...r.encounterDiscard, cardId] }
-        : r,
-    ),
-  };
-}
-
-/**
  * Respuesta obligada de los planes propios: "después de que se coloque
  * amenaza aquí, si hay N o más, [efecto]. Quita toda la amenaza menos M".
  * Revisa todos los planes propios en juego y dispara los que lleguen a su

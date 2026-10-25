@@ -1,6 +1,7 @@
 import type { GameState } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import type { Effect } from "./types";
+import { discardEncounterCard } from "../game/encounterDeck";
 
 export function applyEffect(
   state: GameState,
@@ -32,16 +33,21 @@ export function applyEffect(
           let attachments = state.villain.attachments.map((a) =>
             a.id === suit.id ? { ...a, damageAbsorbed: newDamage } : a,
           );
-          if (newDamage >= suit.damageCapacity) {
+          const discarded = newDamage >= suit.damageCapacity;
+          if (discarded) {
             events.push({
               type: "ATTACHMENT_DISCARDED",
               attachmentId: suit.id,
             });
             attachments = attachments.filter((a) => a.id !== suit.id);
           }
+          const next: GameState = {
+            ...state,
+            villain: { ...state.villain, attachments },
+          };
 
           return {
-            state: { ...state, villain: { ...state.villain, attachments } },
+            state: discarded ? discardEncounterCard(next, suit.cardId) : next,
             events,
           };
         }

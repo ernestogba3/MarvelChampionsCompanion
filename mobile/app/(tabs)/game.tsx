@@ -56,6 +56,13 @@ function shuffleDeck(cards: readonly string[]): string[] {
     return out;
 }
 
+// Semilla aleatoria del mazo de encuentros para las partidas guardadas antes
+// de que el motor la llevara en el estado (sin ella, rebarajar el descarte
+// conservaría el orden). Mismo criterio que index.tsx.
+function randomSeed(): number {
+    return Math.floor(Math.random() * 2 ** 32);
+}
+
 const STEPS = [
     { key: 'PLAYER_PHASE', label: 'Jugador' },
     { key: 'ADD_THREAT', label: 'Amenaza' },
@@ -150,7 +157,12 @@ export default function GameScreen() {
         async function load() {
             const saved = await loadGame();
             if (saved) {
-                setState(deserializeGameState(saved));
+                const loaded = deserializeGameState(saved);
+                setState(
+                    loaded.encounterShuffleSeed === undefined
+                        ? { ...loaded, encounterShuffleSeed: randomSeed() }
+                        : loaded,
+                );
             }
         }
         load();

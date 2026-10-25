@@ -7,6 +7,7 @@ import { canAttackVillain } from "./combat";
 import { getScenarioForState } from "../scenarios";
 import { isMainSchemeFinalStage } from "./mainScheme";
 import { replaceVillainDamage } from "./villainFaces";
+import { discardEncounterCard } from "./encounterDeck";
 import {
   findVillain,
   isMultiVillain,
@@ -268,11 +269,16 @@ export function attackMinion(
   }
   const newHealth = Math.max(0, minion.health - amount);
   const defeated = newHealth <= 0;
+  // Esbirro derrotado: sale de juego y su carta va al descarte de
+  // encuentros (los Drones no tienen carta de encuentro: se tratan abajo).
   let next: GameState = defeated
-    ? {
-        ...state,
-        minions: state.minions.filter((m) => m.id !== minionId),
-      }
+    ? discardEncounterCard(
+        {
+          ...state,
+          minions: state.minions.filter((m) => m.id !== minionId),
+        },
+        minion.isDrone === true ? "" : minion.cardId,
+      )
     : {
         ...state,
         minions: state.minions.map((m) =>
@@ -333,12 +339,16 @@ export function thwartScheme(
   // Un plan secundario sin amenaza se descarta, salvo los planes propios de un
   // villano (The Wrecking Crew): "no puede salir de juego mientras [su
   // villano] esté en juego".
+  // Al descartarse, su carta va al descarte de encuentros.
   if (!scheme.isMain && newThreat === 0 && scheme.villainId === undefined) {
     return {
-      state: {
-        ...state,
-        schemes: state.schemes.filter((s) => s.id !== schemeId),
-      },
+      state: discardEncounterCard(
+        {
+          ...state,
+          schemes: state.schemes.filter((s) => s.id !== schemeId),
+        },
+        scheme.cardId,
+      ),
       events,
     };
   }

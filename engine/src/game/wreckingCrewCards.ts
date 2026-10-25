@@ -11,6 +11,7 @@ import {
   resolveSignatureSchemeOverflows,
 } from "./multiVillain";
 import { millPlayerDeck } from "./playerLibrary";
+import { discardEncounterCard } from "./encounterDeck";
 
 // "Cuando se muestre esta carta" del pack The Wrecking Crew que el motor
 // resuelve solo (los que no dependen de aliados, mejoras, mano ni estados que
@@ -183,6 +184,9 @@ export function resolveTacticalProwess(state: GameState): Result {
   const events: GameEvent[] = [];
   if (from !== undefined && to !== undefined && from.id !== to.id) {
     const moved = from.threat;
+    // Un plan secundario normal sin amenaza se descarta (al descarte de
+    // encuentros); los propios de un villano no salen de juego.
+    const discarded = from.villainId === undefined && moved > 0;
     current = {
       ...current,
       schemes: current.schemes
@@ -191,12 +195,9 @@ export function resolveTacticalProwess(state: GameState): Result {
           if (s.id === to.id) return { ...s, threat: s.threat + moved };
           return s;
         })
-        // Un plan secundario normal sin amenaza se descarta; los propios de
-        // un villano no salen de juego.
-        .filter(
-          (s) => !(s.id === from.id && s.villainId === undefined && moved > 0),
-        ),
+        .filter((s) => !(discarded && s.id === from.id)),
     };
+    if (discarded) current = discardEncounterCard(current, from.cardId);
     events.push(
       { type: "THREAT_REMOVED", schemeId: from.id, amount: moved },
       { type: "THREAT_ADDED", schemeId: to.id, amount: moved },

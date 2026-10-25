@@ -202,6 +202,12 @@ export interface GameState {
   minions: MinionState[];
   encounterDeck: string[];
   encounterDiscard: string[];
+  // Semilla del barajado del mazo de encuentros (al rebarajar el descarte y
+  // en las cartas que dicen "baraja el mazo de encuentros"). Va en el estado
+  // para que el motor siga siendo determinista y la partida se pueda guardar:
+  // cada barajado la avanza. Ausente = no se baraja (orden tal cual, tests y
+  // partidas guardadas antiguas).
+  encounterShuffleSeed?: number;
   pendingEncounterDeals: string[];
   reservedNemesis: NemesisSet | null;
   eventLog: GameEvent[];

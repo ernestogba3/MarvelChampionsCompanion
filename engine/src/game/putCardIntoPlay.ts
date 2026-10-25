@@ -1,6 +1,7 @@
 import type { GameState } from "../domain/types";
 import type { GameEvent } from "../events/types";
 import { getCardDefinition } from "../data/cards";
+import { takeEncounterCard } from "./encounterDeck";
 import { createHydraMercenary, createSandman, createShocker } from "./minions";
 import {
   createArmoredRhinoSuit,
@@ -37,14 +38,22 @@ function uniqueId(base: string, taken: string[]): string {
   return `${base}-${n}`;
 }
 
+/**
+ * Pone en juego una carta de encuentro revelada: esbirro (enfrentado a
+ * `playerId`), acoplada al villano activo o plan secundario. enteredPlay
+ * indica si el motor la tiene ahora en juego: entonces NO va al descarte
+ * hasta que salga de juego (esbirro derrotado, plan sin amenaza, acoplada
+ * descartada). Las acopladas sin modelar (sin fábrica) no se siguen en el
+ * estado: se juegan a mano y la carta va al descarte como hasta ahora.
+ */
 export function putCardIntoPlay(
   state: GameState,
   cardId: string,
   playerId: string,
-): { state: GameState; events: GameEvent[] } {
+): { state: GameState; events: GameEvent[]; enteredPlay: boolean } {
   const def = getCardDefinition(cardId);
   if (!def) {
-    return { state, events: [] };
+    return { state, events: [], enteredPlay: false };
   }
   if (def.type === "MINION") {
     const factory = MINION_FACTORIES[cardId];
@@ -69,11 +78,12 @@ export function putCardIntoPlay(
     return {
       state: { ...state, minions: [...state.minions, minion] },
       events: [],
+      enteredPlay: true,
     };
   }
   if (def.type === "ATTACHMENT") {
     const factory = ATTACHMENT_FACTORIES[cardId];
-    if (!factory) return { state, events: [] };
+    if (!factory) return { state, events: [], enteredPlay: false };
     const attachment = factory(`${cardId}-${state.villain.attachments.length}`);
     return {
       state: {
@@ -84,6 +94,7 @@ export function putCardIntoPlay(
         },
       },
       events: [],
+      enteredPlay: true,
     };
   }
   if (def.type === "SIDE_SCHEME") {
@@ -109,9 +120,10 @@ export function putCardIntoPlay(
       events: [
         { type: "SIDE_SCHEME_ENTERED", schemeId: scheme.id, name: scheme.name },
       ],
+      enteredPlay: true,
     };
   }
-  return { state, events: [] };
+  return { state, events: [], enteredPlay: false };
 }
 
 /**
@@ -132,22 +144,11 @@ export function putEncounterMinionIntoPlay(
   if (getCardDefinition(cardId)?.type !== "MINION") {
     return { state, events: [] };
   }
-  let from: GameState;
-  const deckIdx = state.encounterDeck.indexOf(cardId);
-  if (deckIdx >= 0) {
-    const encounterDeck = [...state.encounterDeck];
-    encounterDeck.splice(deckIdx, 1);
-    from = { ...state, encounterDeck };
-  } else {
-    const discardIdx = state.encounterDiscard.indexOf(cardId);
-    if (discardIdx < 0) {
-      return { state, events: [] };
-    }
-    const encounterDiscard = [...state.encounterDiscard];
-    encounterDiscard.splice(discardIdx, 1);
-    from = { ...state, encounterDiscard };
+  const taken = takeEncounterCard(state, cardId);
+  if (!taken.found) {
+    return { state, events: [] };
   }
-  const { state: next, events } = putCardIntoPlay(from, cardId, playerId);
+  const { state: next, events } = putCardIntoPlay(taken.state, cardId, playerId);
   const minion = next.minions[next.minions.length - 1];
   if (minion === undefined) {
     return { state, events: [] };

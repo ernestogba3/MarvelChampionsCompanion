@@ -11,6 +11,11 @@ import {
   revealVillainFace,
   stageFace,
 } from "./villainFaces";
+import {
+  discardEncounterCard,
+  shuffleEncounterCards,
+  takeEncounterCard,
+} from "./encounterDeck";
 
 /**
  * Avanza el villano a su SIGUIENTE estadio (I→II→III) leyendo la definición
@@ -143,13 +148,35 @@ export function advanceVillainStage(state: GameState): {
             : m,
         );
 
-  const advanced: GameState = {
+  let advanced: GameState = {
     ...state,
     villain: newVillain,
     schemes: [...state.schemes, ...newSideSchemes],
     players: newPlayers,
     minions: newMinions,
   };
+
+  // Las acopladas que el estadio limpia salen de juego: al descarte.
+  if (nextStage.clearAttachmentsOnEnter) {
+    for (const a of state.villain.attachments) {
+      advanced = discardEncounterCard(advanced, a.cardId);
+    }
+  }
+
+  // Si la carta del plan que entra con el estadio está en el mazo de
+  // encuentros o en su descarte, sale de ahí y se baraja el mazo (Rino II:
+  // "busca en el mazo de encuentros y en la pila de descartes el plan
+  // secundario Arramblar con todo y muéstralo. Baraja el mazo de
+  // encuentros"). Si no, la carta seguiría a la vez en juego y en el mazo.
+  for (const s of newSideSchemes) {
+    const taken = takeEncounterCard(advanced, s.cardId);
+    if (!taken.found) continue;
+    const shuffled = shuffleEncounterCards(
+      taken.state,
+      taken.state.encounterDeck,
+    );
+    advanced = { ...shuffled.state, encounterDeck: shuffled.cards };
+  }
 
   // "Cuando se muestre esta carta" del nuevo estadio declarado en datos
   // (daño a los jugadores, cartas de encuentro repartidas).

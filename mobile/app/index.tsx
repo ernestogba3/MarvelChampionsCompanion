@@ -36,6 +36,12 @@ function shuffleDeck(cards: readonly string[]): string[] {
   return out;
 }
 
+// Semilla aleatoria del mazo de encuentros: el motor baraja con ella al crear
+// la partida y cada vez que rebaraja el descarte (sin usar Math.random).
+function randomSeed(): number {
+  return Math.floor(Math.random() * 2 ** 32);
+}
+
 const DEFAULT_SLOTS: PlayerSetup[] = [
   {
     id: 'player-1',
@@ -240,9 +246,10 @@ export default function IndexScreen() {
       return;
     }
     // Barajado real del mazo de encuentros: el motor es determinista y la app
-    // le inyecta la aleatoriedad (si no, saldría siempre la misma carta).
+    // le inyecta la aleatoriedad con una semilla (si no, saldría siempre la
+    // misma carta). La semilla queda en la partida para rebarajar el descarte.
     let state = createGame(scenarioId, activeSlots, difficulty, {
-      shuffle: shuffleDeck,
+      seed: randomSeed(),
     });
     // Para cada jugador que trae mazo: cargarlo, barajarlo e inicializar su
     // biblioteca (mano inicial + biblioteca). Los jugadores sin mazo quedan

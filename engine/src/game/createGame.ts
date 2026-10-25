@@ -9,6 +9,7 @@ import { getScenario, villainDefinition } from "../scenarios";
 import { mainSchemeStartingThreat } from "./mainScheme";
 import { putEncounterMinionIntoPlay } from "./putCardIntoPlay";
 import { noShuffle, type Shuffle } from "./playerLibrary";
+import { seededShuffle } from "./encounterDeck";
 import {
   initialEnvironment,
   revealVillainFace,
@@ -67,16 +68,19 @@ function buildPlayers(setups: PlayerSetup[]): PlayerState[] {
  * (startingThreatPerPlayer). La aceleración por ronda escala aparte, en
  * addThreatStep.
  *
- * El mazo de encuentros se baraja con `options.shuffle` antes de sacar los
- * esbirros de preparación. Por defecto (noShuffle) el motor es determinista y
- * conserva el orden del escenario (tests); la app pasa un barajador real para
- * que no salga siempre la misma carta.
+ * El mazo de encuentros se baraja antes de sacar los esbirros de
+ * preparación: con `options.shuffle` si se pasa y, si no, con
+ * `options.seed`. La semilla se guarda en el estado (encounterShuffleSeed)
+ * para los barajados posteriores (rebarajar el descarte al agotarse el mazo),
+ * así el motor no usa Math.random y la partida es reproducible. Sin ninguna de
+ * las dos (tests) el motor es determinista y conserva el orden del escenario;
+ * la app pasa una semilla aleatoria para que no salga siempre la misma carta.
  */
 export function createGame(
   scenarioId: string,
   playerSetups: PlayerSetup[],
   difficulty: Difficulty = "STANDARD",
-  options: { shuffle?: Shuffle } = {},
+  options: { shuffle?: Shuffle; seed?: number } = {},
 ): GameState {
   if (playerSetups.length === 0) {
     throw new Error("Se necesita al menos un jugador para crear la partida.");
@@ -95,7 +99,14 @@ export function createGame(
   }
   const firstPlayerId = firstPlayer.id;
 
-  const shuffle = options.shuffle ?? noShuffle;
+  let seed = options.seed;
+  const shuffle = (cards: readonly string[]): string[] => {
+    if (options.shuffle !== undefined) return options.shuffle(cards);
+    if (seed === undefined) return noShuffle(cards);
+    const shuffled = seededShuffle(cards, seed);
+    seed = shuffled.seed;
+    return shuffled.cards;
+  };
   const startStageName = scenario.progression[difficulty].start;
   // Villano de dos caras (escenario con Entorno de contadores): empieza por la
   // cara A (Norman Osborn), igual que su Entorno (Empresa criminal).
@@ -143,6 +154,14 @@ export function createGame(
   const active = built[0];
   if (active === undefined) {
     throw new Error(`El escenario "${scenario.id}" no define ningún villano.`);
+  }
+  // Los planes que entran con el estadio inicial salen del mazo si su carta
+  // está en él (Rino en Experto empieza en II con Arramblar con todo), para
+  // que no estén a la vez en juego y en el mazo.
+  const activeDeck = [...active.deck];
+  for (const s of active.stage.sideSchemesOnEnter) {
+    const idx = activeDeck.indexOf(s.cardId);
+    if (idx >= 0) activeDeck.splice(idx, 1);
   }
 
   const mainScheme: SchemeState = {
@@ -214,8 +233,9 @@ export function createGame(
     villain: active.villain,
     schemes: [mainScheme, ...sideSchemes, ...signatureSchemes],
     minions: [],
-    encounterDeck: active.deck,
+    encounterDeck: activeDeck,
     encounterDiscard: [],
+    ...(seed !== undefined && { encounterShuffleSeed: seed }),
     pendingEncounterDeals: [],
     reservedNemesis: null,
     eventLog: [],
