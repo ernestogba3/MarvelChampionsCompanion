@@ -240,8 +240,9 @@ mecánica nueva, el sistema que la resuelve.
 - **Sets modulares** (`engine/src/data/modularSets.ts`): grupos de cartas con
   nombre que se mezclan en el mazo de encuentros de cualquier escenario.
   `createGame` acepta `modularSetIds` y la selección vive en
-  `GameState.modularSetIds`; la app los ofrece en Inicio. Un esbirro con Dureza
-  impresa entra Resistente por datos (`toughOnEnter`).
+  `GameState.modularSetIds`; la app los ofrece en Inicio. Un esbirro genérico
+  toma por datos su Guardia (`guard`), su Dureza de entrada (`toughOnEnter`) y
+  su Represalia (`retaliate`).
 
 ### Determinista y reproducible
 
@@ -279,6 +280,14 @@ pack/caja se verifica al construirlo, nunca de memoria.
 - **Ronan:** es un **set modular puro** (Fanático Kree, 5 cartas, `kree_fanatic`),
   no un escenario. Implementado vía el sistema modular (abajo): se puede añadir
   al mazo de encuentros de cualquier villano desde Inicio.
+- **The Hood:** El Encapuchado (3 estadios; plan principal de 3 etapas por
+  umbral 5/8/10 ×jugadores), su set propio + Standard II, y **9 sets modulares**
+  del pack (Los chicos salvajes, Hermanos Grimm, La banda de Fuego Cruzado,
+  Mr. Hyde, Armería saqueada, Sindicato Siniestro, Estado de emergencia, Calles
+  del caos y la Brigada de Demolición). 70 cartas nuevas (24001-24070 sin las
+  caras traseras). Su habilidad "Juego sucio" y el reparto de cartas van
+  guiados; el diseño "aparta 7 sets y baraja de uno en uno" se aproxima
+  metiendo al empezar los que elijas (ver el `.ts` del escenario).
 - **Sistema de sets modulares** (`engine/src/data/modularSets.ts`): un set
   modular es una lista de cartas con nombre que se mezcla en el mazo de
   encuentros. `createGame` acepta `modularSetIds`; la selección se guarda en
@@ -306,11 +315,8 @@ pack/caja se verifica al construirlo, nunca de memoria.
 2. ~~The Wrecking Crew (`twc`, 2020-02) — cuatro villanos a la vez.~~ **Hecho.**
 3. ~~**Ronan Modular Set** (`ron`, 2020-08) — set modular puro (Fanático Kree).~~
    **Hecho** vía el sistema de sets modulares.
-4. **The Hood** (`hood`, 2021-11) — villano completo (3 estadios + plan
-   principal, 74 cartas) cuyo diseño es **elegir sets modulares** para armar el
-   mazo de encuentros. Ya implementable con el sistema modular. Pendiente:
-   añadir sus cartas y sus ~10 sets modulares (Beasty Boys, Brothers Grimm,
-   Crossfire Crew, Mister Hyde, Sinister Syndicate…).
+4. ~~**The Hood** (`hood`, 2021-11) — villano completo (3 estadios + plan
+   principal) con 9 sets modulares.~~ **Hecho.**
 5. **MojoMania** (`mojo`, 2022-11). *Verificar.*
 6. **Trickster Takeover** (`tt`, 2025-08). *Verificar.*
 7. **Synthezoid Smackdown** (`synthezoid`, 2025-12). *Verificar.*
@@ -585,6 +591,13 @@ si el esbirro choca con otro igual, no entra y la carta gana Oleada).
 - **Mazos de jugador:** Masacre solo recibe sus cartas propias (sin el aspecto
   "Pool"); el editor valida héroe, aspecto, tamaño y copias, pero no las
   restricciones especiales de ciertas identidades (límites de rasgo o de coste).
+- **The Hood:** "Juego sucio" (descartar/repartir cartas de encuentro), el
+  reparto de planes a cada jugador, los entornos y los efectos de aliados van
+  guiados. El diseño "aparta 7 sets modulares y baraja de uno en uno según
+  avanza el villano" se aproxima metiendo al empezar los sets elegidos; el
+  "barajar otro al revelar el estadio II/III" se hace a mano. Villainous (los
+  esbirros de la Brigada roban aumento al activarse) y el set Expert II no se
+  modelan.
 - **Set modular Fanático Kree (Ronan):** en modo árbitro, sus efectos ligados a
   aliados y a la identidad van guiados. El motor solo modela que Ronan entra con
   Dureza y que su plan secundario trae su amenaza; el enganche al héroe con menos

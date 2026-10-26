@@ -9,6 +9,7 @@ import { ULTRON_SCENARIO } from "./ultron";
 import { RISKY_BUSINESS_SCENARIO } from "./riskyBusiness";
 import { MUTAGEN_FORMULA_SCENARIO } from "./mutagenFormula";
 import { WRECKING_CREW_SCENARIO } from "./wreckingCrew";
+import { THE_HOOD_SCENARIO } from "./theHood";
 
 export type {
   ScenarioDefinition,
@@ -37,6 +38,7 @@ const SCENARIOS: Record<string, ScenarioDefinition> = {
   [RISKY_BUSINESS_SCENARIO.id]: RISKY_BUSINESS_SCENARIO,
   [MUTAGEN_FORMULA_SCENARIO.id]: MUTAGEN_FORMULA_SCENARIO,
   [WRECKING_CREW_SCENARIO.id]: WRECKING_CREW_SCENARIO,
+  [THE_HOOD_SCENARIO.id]: THE_HOOD_SCENARIO,
 };
 
 /** Busca un escenario por su id (la clave estable: "rhino", "klaw", …). */

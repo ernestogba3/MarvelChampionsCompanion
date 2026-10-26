@@ -74,6 +74,7 @@ export function putCardIntoPlay(
           engagedWith: playerId,
           tough: def.toughOnEnter ?? false,
           guard: def.guard ?? false,
+          ...(def.retaliate !== undefined && { retaliate: def.retaliate }),
         };
     return {
       state: { ...state, minions: [...state.minions, minion] },
