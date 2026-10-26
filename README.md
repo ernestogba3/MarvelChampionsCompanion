@@ -39,7 +39,7 @@ Esta decisión de diseño condiciona todo lo demás: **la app arbitra el lado de
 | **Partida**   | El asistente de la ronda paso a paso: amenaza, activación del villano, reparto y revelado de encuentros, ataques, frustrar, Entorno, varios villanos, biblioteca simulada (robar, jugar, descartar), explicación de cada evento |
 | **Cartas**    | Catálogo de las cartas de encuentro con su imagen                                                                                                                                                         |
 | **Reglas**    | Glosario de palabras clave (español / inglés) con buscador                                                                                                                                                |
-| **Colección** | Tus mazos guardados (incluidos los del pack) con la validación de las reglas de mazo (aspecto, tamaño, copias) y un visor de cartas. El editor de mazos aún no está hecho                              |
+| **Colección** | Tus mazos guardados (incluidos los del pack): crear, ver y editar con el editor de mazos, con validación en vivo de las reglas (héroe, aspecto, tamaño, copias) y qué cartas te faltan en tu colección |
 | **Más**       | Reiniciar la partida y enlace al reglamento                                                                                                                                                              |
 
 La partida se guarda sola en SQLite y se recupera al volver a abrir la app.
@@ -173,8 +173,8 @@ Todas están anotadas en [`docs/Content roadmap.md`](docs/Content%20roadmap.md):
 - **Encuentros en alter ego:** un jugador en alter ego todavía no recibe su carta de encuentro base en el paso 3.
 - **Tratados sin carta de aumento:** Agresión y Todos a una no le dan carta de aumento al villano.
 - **Mazos de jugador:**
-  - aún no hay editor de mazos ("Nuevo mazo" en Colección no lleva a ningún editor);
-  - Masacre solo recibe sus cartas propias, porque el aspecto "Pool" no está contemplado.
+  - Masacre solo recibe sus cartas propias, porque el aspecto "Pool" no está contemplado;
+  - el editor no modela las restricciones especiales de algunos héroes (p.ej. límites de rasgo o de coste de ciertas identidades): comprueba héroe, aspecto, tamaño y copias, pero no esas reglas particulares.
 - **Sets de némesis y obligaciones:** aún no existen. El hueco está preparado (`reservedNemesis`).
 - **The Wrecking Crew:** sin el modo "desafío extremo" (versión A y luego B) ni mezclas de versiones A/B.
 - **TC-014:** falta confirmar contra el reglamento físico en qué momento exacto se comprueba la derrota por amenaza.

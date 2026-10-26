@@ -94,7 +94,7 @@ export default function CollectionScreen() {
             <View className="flex-row items-center justify-between mb-4">
                 <Text className="font-display text-crema text-3xl">Colección</Text>
                 <Pressable
-                    onPress={() => router.push('/mazo/nuevo')}
+                    onPress={() => router.push('/mazo/editar/nuevo')}
                     className="bg-dorado/15 rounded-full px-4 py-2 flex-row items-center gap-1"
                 >
                     <Ionicons name="add" size={16} color="#D4A24C" />

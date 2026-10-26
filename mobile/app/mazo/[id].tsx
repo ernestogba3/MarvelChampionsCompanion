@@ -223,6 +223,13 @@ export default function DeckViewerScreen() {
                             {heroTitle} · {aspectLabel} · {total} cartas
                         </Text>
                     </View>
+                    <Pressable
+                        onPress={() => router.push(`/mazo/editar/${deck.id}`)}
+                        className="bg-dorado/15 rounded-full px-4 py-2 flex-row items-center gap-1"
+                    >
+                        <Ionicons name="create-outline" size={16} color="#D4A24C" />
+                        <Text className="font-sans-bold text-dorado text-xs">Editar</Text>
+                    </Pressable>
                 </View>
 
                 {groups.map((group) => (
@@ -275,8 +282,8 @@ export default function DeckViewerScreen() {
                 {groups.length === 0 && (
                     <View className="bg-crema/5 rounded-2xl p-4">
                         <Text className="font-sans text-gris-pizarra text-sm">
-                            Este mazo no tiene cartas todavía. Edítalo desde la pestaña
-                            Colección para añadirle cartas.
+                            Este mazo no tiene cartas todavía. Pulsa «Editar» arriba
+                            para añadirle cartas.
                         </Text>
                     </View>
                 )}

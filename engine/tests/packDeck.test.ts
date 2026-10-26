@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildPackDeck,
   deckSize,
+  isDeckEligibleCard,
   packAspects,
   type PackCardInfo,
 } from "../src/deck/packDeck";
@@ -124,5 +125,77 @@ describe("Mazo del pack", () => {
     // Las de su set no cuentan como aspecto del pack: el aspecto es justicia.
     expect(deck.aspect).toBe("justice");
     expect(deck.cards).toEqual({ "04033": 2, "04035": 2, "04036": 2, "04050": 3 });
+  });
+});
+
+describe("isDeckEligibleCard (editor de mazos)", () => {
+  // Héroe "captain_america"; el editor ofrece cartas de CUALQUIER pack, no
+  // solo del suyo.
+  const hero = "captain_america";
+  const c = (
+    factionCode: string,
+    extra: Partial<PackCardInfo> = {},
+  ): PackCardInfo => ({
+    code: "x",
+    packCode: "otro",
+    typeCode: "event",
+    factionCode,
+    setCode: null,
+    quantity: 1,
+    deckLimit: 3,
+    ...extra,
+  });
+
+  it("acepta las cartas propias del héroe (su set)", () => {
+    expect(isDeckEligibleCard(c("hero", { setCode: hero }), hero, "leadership")).toBe(true);
+  });
+
+  it("rechaza cartas de héroe de OTRO set", () => {
+    expect(isDeckEligibleCard(c("hero", { setCode: "thor" }), hero, "leadership")).toBe(false);
+  });
+
+  it("acepta cartas genéricas del aspecto elegido, de cualquier pack", () => {
+    expect(isDeckEligibleCard(c("leadership"), hero, "leadership")).toBe(true);
+  });
+
+  it("rechaza cartas de un aspecto distinto del elegido", () => {
+    expect(isDeckEligibleCard(c("aggression"), hero, "leadership")).toBe(false);
+  });
+
+  it("acepta cartas de aspecto 'de color' del propio héroe (Spider-Woman)", () => {
+    expect(
+      isDeckEligibleCard(c("aggression", { setCode: "spider_woman" }), "spider_woman", "aggression"),
+    ).toBe(true);
+  });
+
+  it("rechaza cartas de aspecto 'de color' de OTRO héroe", () => {
+    expect(
+      isDeckEligibleCard(c("aggression", { setCode: "spider_woman" }), hero, "aggression"),
+    ).toBe(false);
+  });
+
+  it("acepta básicas genéricas sea cual sea el aspecto", () => {
+    expect(isDeckEligibleCard(c("basic"), hero, null)).toBe(true);
+    expect(isDeckEligibleCard(c("basic"), hero, "justice")).toBe(true);
+  });
+
+  it("rechaza básicas ligadas a un escenario (set de líder de Civil War)", () => {
+    expect(
+      isDeckEligibleCard(c("basic", { setCode: "iron_man_leader" }), hero, "leadership"),
+    ).toBe(false);
+  });
+
+  it("rechaza identidades, encuentro, campaña y aspecto 'pool' (Masacre)", () => {
+    expect(isDeckEligibleCard(c("hero", { typeCode: "hero", setCode: hero }), hero, "leadership")).toBe(false);
+    expect(isDeckEligibleCard(c("hero", { typeCode: "alter_ego", setCode: hero }), hero, "leadership")).toBe(false);
+    expect(isDeckEligibleCard(c("encounter", { setCode: hero }), hero, "leadership")).toBe(false);
+    expect(isDeckEligibleCard(c("campaign"), hero, "leadership")).toBe(false);
+    expect(isDeckEligibleCard(c("pool"), hero, "leadership")).toBe(false);
+  });
+
+  it("sin aspecto (null): solo cartas del héroe y básicas genéricas", () => {
+    expect(isDeckEligibleCard(c("leadership"), hero, null)).toBe(false);
+    expect(isDeckEligibleCard(c("basic"), hero, null)).toBe(true);
+    expect(isDeckEligibleCard(c("hero", { setCode: hero }), hero, null)).toBe(true);
   });
 });

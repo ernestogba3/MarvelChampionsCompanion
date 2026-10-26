@@ -21,6 +21,7 @@
 import {
   ASPECT_FACTIONS,
   BASIC_FACTION,
+  HERO_FACTION,
   type AspectFaction,
   type DeckDefinition,
 } from "./deckRules";
@@ -145,4 +146,32 @@ export function buildPackDeck(
 /** Número de cartas del mazo (sin la identidad). */
 export function deckSize(deck: DeckDefinition): number {
   return Object.values(deck.cards).reduce((sum, n) => sum + n, 0);
+}
+
+/**
+ * ¿Puede esta carta ir en un mazo de ese héroe con ese aspecto? Es la regla
+ * que usa el editor de mazos para ofrecer cartas: a diferencia de
+ * buildPackDeck, NO se limita al pack del héroe, porque el jugador puede usar
+ * cualquier carta genérica que tenga de cualquier pack.
+ *   - cartas del héroe: las de su card_set_code;
+ *   - cartas del aspecto elegido: genéricas (sin set) o del propio héroe
+ *     (aspecto "de color", como las de Spider-Woman);
+ *   - básicas: genéricas o del propio héroe.
+ * Excluye identidades, cartas de encuentro/campaña, y cartas de aspecto o
+ * básicas ligadas a OTRO héroe o a un escenario (su setCode no coincide).
+ */
+export function isDeckEligibleCard(
+  card: PackCardInfo,
+  heroSetCode: string,
+  aspect: AspectFaction | null,
+): boolean {
+  if (IDENTITY_TYPES.has(card.typeCode)) return false;
+  if (NON_PLAYER_FACTIONS.has(card.factionCode)) return false;
+  if (card.factionCode === HERO_FACTION) {
+    return card.setCode === heroSetCode;
+  }
+  const generic = card.setCode === null || card.setCode === heroSetCode;
+  if (card.factionCode === BASIC_FACTION) return generic;
+  if (aspect !== null && card.factionCode === aspect) return generic;
+  return false;
 }

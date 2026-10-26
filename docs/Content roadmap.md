@@ -131,13 +131,24 @@ Agents of S.H.I.E.L.D., Civil War: 51-60), Gamora (37), Hombre Maravilla (33)
 y Masacre (16: el aspecto "Pool" no está contemplado). No se recorta: elegir
 qué quitar sería inventarse el mazo.
 
+### Editor de mazos (hecho)
+
+`mobile/app/mazo/editar/[id].tsx`: crear (elige héroe → precarga sus cartas
+de firma), ver y editar. Aspecto elegible, buscador, controles de ± copias
+por carta (hasta su deck_limit) y validación en vivo (tamaño, aspecto único,
+copias, cartas de héroe obligatorias, cartas que faltan en la colección).
+Las cartas que ofrece salen de `isDeckEligibleCard`
+(`engine/src/deck/packDeck.ts`): cartas del héroe, del aspecto elegido
+(genéricas o "de color" del propio héroe) y básicas genéricas, excluyendo las
+de otro héroe o escenario. "Nuevo mazo" y "Editar" (en Colección y en el
+visor) ya enlazan aquí.
+
 Pendiente:
-- **Editor de mazos.** "Nuevo mazo" (Colección) navega a `/mazo/nuevo`,
-  pero en `mobile/app/mazo/[id].tsx` solo está el visor de solo lectura: el
-  editor no llegó al repositorio.
 - Preconstruidos oficiales, si se decide transcribirlos de los folletos
   (verificados uno a uno).
 - Aspecto "Pool" (Masacre) en las reglas de mazo.
+- Restricciones especiales de algunos héroes (límites de rasgo/coste de
+  ciertas identidades): el editor aún no las comprueba.
 
 ### Inventario — héroes del Core Set
 
