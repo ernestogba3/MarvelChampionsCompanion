@@ -61,29 +61,24 @@ La partida se guarda sola en SQLite y se recupera al volver a abrir la app.
 ```
 MarvelChampionsCompanion/
 ├── docs/
-│   ├── Content roadmap.md          # Plan para cubrir todo el contenido del juego
-│   ├── Claude code brief.md        # Reglas de trabajo para añadir villanos
-│   ├── rules-specs.md              # Secuencia de ronda verificada + glosario
-│   ├── marvel-champions-rules-reference.md
-│   ├── Scenario-Rhino.md           # Cartas del escenario de Rino (EN/ES)
-│   ├── test cases.md               # Casos de prueba en dado / cuando / entonces
+│   ├── Base de conocimiento.md     # Base de conocimiento interna del proyecto
 │   └── assets/portada.png
 │
 ├── engine/                          # Motor de juego (TypeScript puro)
 │   ├── src/
 │   │   ├── domain/                   # GameState y tipos del estado
-│   │   ├── data/cards.ts             # Catálogo de 147 cartas de encuentro verificadas
+│   │   ├── data/cards.ts             # Catálogo de cartas de encuentro verificadas
 │   │   ├── scenarios/                # Un archivo por escenario (datos, no código)
 │   │   ├── game/                     # Fases, activación, encuentros, estadios, varios villanos…
 │   │   ├── effects/                  # Sistema genérico de Effects
 │   │   ├── events/                   # GameEvent y log de eventos
 │   │   ├── explanations/             # Explicaciones en español + asistente paso a paso
-│   │   ├── deck/                     # Reglas de mazos y "mazo del pack" de cada héroe
+│   │   ├── deck/                     # Reglas de mazos, "mazo del pack" y editor
 │   │   └── persistence/              # Serialización y migración de partidas guardadas
-│   └── tests/                        # 307 tests de Vitest
+│   └── tests/                        # Suite de Vitest (~317)
 │
 ├── mobile/                          # App Expo
-│   ├── app/                          # Pantallas (Expo Router): Inicio, pestañas, editor de mazo
+│   ├── app/                          # Pantallas (Expo Router): Inicio, pestañas, visor/editor de mazo
 │   ├── services/                     # Catálogo de marvelcdb, héroes, índice de cartas
 │   └── storage/                      # SQLite: partida, mazos y caché del catálogo
 │
@@ -164,7 +159,7 @@ Después, escanea el código QR con Expo Go.
 
 ## Limitaciones conocidas
 
-Todas están anotadas en [`docs/Content roadmap.md`](docs/Content%20roadmap.md):
+Todas están anotadas en [`docs/Base de conocimiento.md`](docs/Base%20de%20conocimiento.md):
 
 - **No modelado (se resuelve a mano en la mesa):**
   - aliados, defensa, recursos y la mano del jugador;
@@ -181,7 +176,7 @@ Todas están anotadas en [`docs/Content roadmap.md`](docs/Content%20roadmap.md):
 
 ## Próximos pasos
 
-Según [`docs/Content roadmap.md`](docs/Content%20roadmap.md):
+Según [`docs/Base de conocimiento.md`](docs/Base%20de%20conocimiento.md):
 
 - **Fase A: el resto de packs de escenario.** Ronan y The Hood (posiblemente sets modulares, pendiente de confirmar), MojoMania, Trickster Takeover y Synthezoid Smackdown.
 - **Fase B: las cajas de campaña, por orden de salida.** De _The Rise of Red Skull_ a _Fear No Evil_.
