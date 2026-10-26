@@ -23,6 +23,7 @@ import {
   deckSize,
   DECK_MIN_CARDS,
   DECK_MAX_CARDS,
+  ALL_MODULAR_SETS,
 } from 'engine';
 import type {
   GameState,
@@ -93,6 +94,8 @@ export default function IndexScreen() {
   const [scenarioId, setScenarioId] = useState<string>('rhino');
   const [playerCount, setPlayerCount] = useState(1);
   const [slots, setSlots] = useState<PlayerSetup[]>(DEFAULT_SLOTS);
+  // Sets modulares elegidos para la nueva partida (ver engine/data/modularSets).
+  const [modularSetIds, setModularSetIds] = useState<string[]>([]);
 
   const [catalog, setCatalog] = useState<HeroCatalogEntry[]>([]);
   const [catalogStatus, setCatalogStatus] = useState<CatalogStatus>('loading');
@@ -314,6 +317,7 @@ export default function IndexScreen() {
     // misma carta). La semilla queda en la partida para rebarajar el descarte.
     let state = createGame(scenarioId, activeSlots, difficulty, {
       seed: randomSeed(),
+      ...(modularSetIds.length > 0 && { modularSetIds }),
     });
     // Para cada jugador que trae mazo: cargarlo, barajarlo e inicializar su
     // biblioteca (mano inicial + biblioteca). Los jugadores sin mazo quedan
@@ -748,6 +752,43 @@ export default function IndexScreen() {
                 </Pressable>
               </View>
             </View>
+
+            {ALL_MODULAR_SETS.length > 0 && (
+              <View className="gap-2">
+                <Text className="font-sans-semibold text-gris-pizarra text-xs uppercase tracking-widest">
+                  Sets modulares (opcional)
+                </Text>
+                <Text className="font-sans text-gris-pizarra text-[11px]">
+                  Grupos de cartas que se mezclan en el mazo de encuentros. Elige
+                  los que vayas a usar físicamente.
+                </Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {ALL_MODULAR_SETS.map((set) => {
+                    const active = modularSetIds.includes(set.id);
+                    return (
+                      <Pressable
+                        key={set.id}
+                        onPress={() =>
+                          setModularSetIds((prev) =>
+                            prev.includes(set.id)
+                              ? prev.filter((id) => id !== set.id)
+                              : [...prev, set.id],
+                          )
+                        }
+                        className={`rounded-full px-3 py-2 border ${active ? 'bg-dorado/20 border-dorado' : 'border-crema/20'
+                          }`}
+                      >
+                        <Text
+                          className={`font-sans text-xs ${active ? 'text-dorado' : 'text-crema'}`}
+                        >
+                          {active ? '✓ ' : ''}{set.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
 
             <Pressable
               onPress={handleNewGame}

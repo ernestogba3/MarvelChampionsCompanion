@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { CARD_CATALOG, getCardDefinition } from "../src/data/cards";
 describe("Catálogo de cartas (Fase 4)", () => {
-  it("contiene las 147 cartas documentadas", () => {
-    expect(Object.keys(CARD_CATALOG)).toHaveLength(147);
+  it("contiene las 152 cartas documentadas", () => {
+    expect(Object.keys(CARD_CATALOG)).toHaveLength(152);
   });
   it("Rino (I) tiene los valores reales", () => {
     const card = getCardDefinition("01094");

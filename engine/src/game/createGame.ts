@@ -6,6 +6,7 @@ import type {
   VillainState,
 } from "../domain/types";
 import { getScenario, villainDefinition } from "../scenarios";
+import { modularSetCards } from "../data/modularSets";
 import { mainSchemeStartingThreat } from "./mainScheme";
 import { putEncounterMinionIntoPlay } from "./putCardIntoPlay";
 import { noShuffle, type Shuffle } from "./playerLibrary";
@@ -80,7 +81,7 @@ export function createGame(
   scenarioId: string,
   playerSetups: PlayerSetup[],
   difficulty: Difficulty = "STANDARD",
-  options: { shuffle?: Shuffle; seed?: number } = {},
+  options: { shuffle?: Shuffle; seed?: number; modularSetIds?: string[] } = {},
 ): GameState {
   if (playerSetups.length === 0) {
     throw new Error("Se necesita al menos un jugador para crear la partida.");
@@ -118,7 +119,11 @@ export function createGame(
   const multi = scenario.villains !== undefined;
   const single = villainDefinition(scenario);
   const villainDefs = scenario.villains ?? (single !== undefined ? [single] : []);
-  const built = villainDefs.map((def) => {
+  // Sets modulares elegidos: sus cartas se mezclan en el mazo del villano
+  // ACTIVO (el primero). Con varios villanos, cada uno conserva su propio mazo.
+  const modularIds = options.modularSetIds ?? [];
+  const modularCards = modularSetCards(modularIds);
+  const built = villainDefs.map((def, i) => {
     const stage = def.stages.find((s) => s.stage === startStageName);
     if (stage === undefined) {
       throw new Error(
@@ -148,7 +153,7 @@ export function createGame(
       stage,
       face,
       villain,
-      deck: shuffle(def.encounterDeck),
+      deck: shuffle(i === 0 ? [...def.encounterDeck, ...modularCards] : def.encounterDeck),
     };
   });
   const active = built[0];
@@ -217,6 +222,7 @@ export function createGame(
 
   let state: GameState = {
     scenarioId: scenario.id,
+    ...(modularIds.length > 0 && { modularSetIds: modularIds }),
     ...(environment !== undefined && { environment }),
     ...(multi && {
       reserveVillains: built.slice(1).map((b) => ({

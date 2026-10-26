@@ -192,6 +192,10 @@ export interface GameState {
   // en juego que no tienen el contador activo. El activo es `villain`.
   // Ausente en los escenarios de un solo villano.
   reserveVillains?: ReserveVillainState[];
+  // Sets modulares elegidos al crear la partida (ver data/modularSets.ts). Sus
+  // cartas ya están mezcladas en el mazo de encuentros; se guarda la selección
+  // para mostrarla y para las partidas guardadas. Ausente = ninguno.
+  modularSetIds?: string[];
   round: number;
   phase: GamePhase;
   difficulty: Difficulty;

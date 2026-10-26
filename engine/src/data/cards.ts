@@ -17,6 +17,7 @@ export type EncounterSet =
   | "THUNDERBALL"
   | "PILEDRIVER"
   | "BULLDOZER"
+  | "KREE_FANATIC"
   | "STANDARD";
 export interface CardDefinition {
   id: string;
@@ -41,6 +42,9 @@ export interface CardDefinition {
   // entran por la ruta genérica (sin fábrica propia en putCardIntoPlay) toman
   // de aquí su Guardia.
   guard?: boolean;
+  // Palabra clave Dureza (Toughness) IMPRESA en un esbirro: entra en juego con
+  // un estado de Resistente. Los esbirros genéricos lo toman de aquí.
+  toughOnEnter?: boolean;
   // La amenaza inicial impresa es POR JUGADOR (icono [per_hero] en la carta;
   // en marvelcdb, base_threat_fixed = false). El motor la multiplica ×nº de
   // jugadores al poner la carta en juego. Sin el campo = amenaza fija.
@@ -1522,6 +1526,56 @@ export const CARD_CATALOG: Record<string, CardDefinition> = {
     type: "TREACHERY",
     set: "STANDARD",
     boost: 2,
+  },
+  // --- Set modular Fanático Kree (de Ronan). Códigos 90001-90005 en
+  // marvelcdb. Es un set modular: no es un escenario, se añade al mazo de
+  // encuentros de cualquier villano. Sus efectos están muy ligados a aliados
+  // y a la identidad del jugador, así que en modo árbitro van guiados; el
+  // motor solo modela lo básico (Ronan entra con Dureza; el plan secundario,
+  // con su amenaza). ---
+  "90001": {
+    id: "90001",
+    nameEn: "Ronan the Accuser",
+    nameEs: "Ronan el Acusador",
+    type: "MINION",
+    set: "KREE_FANATIC",
+    traits: ["Accuser Corps", "Elite", "Kree"],
+    attack: 3,
+    scheme: 3,
+    health: 9,
+    toughOnEnter: true,
+  },
+  "90002": {
+    id: "90002",
+    nameEn: "Judge, Jury, Executioner",
+    nameEs: "Juez, jurado y verdugo",
+    type: "SIDE_SCHEME",
+    set: "KREE_FANATIC",
+    startingThreat: 3,
+  },
+  "90003": {
+    id: "90003",
+    nameEn: "The Accused",
+    nameEs: "El acusado",
+    type: "ATTACHMENT",
+    set: "KREE_FANATIC",
+    traits: ["Condition"],
+  },
+  "90004": {
+    id: "90004",
+    nameEn: "Bring the Hammer Down",
+    nameEs: "Dictar sentencia",
+    type: "TREACHERY",
+    set: "KREE_FANATIC",
+    boost: 0,
+  },
+  "90005": {
+    id: "90005",
+    nameEn: "You Dare Oppose Me?",
+    nameEs: "¿Te atreves a oponerte a mí?",
+    type: "TREACHERY",
+    set: "KREE_FANATIC",
+    boost: 0,
   },
 };
 export function getCardDefinition(id: string): CardDefinition | undefined {

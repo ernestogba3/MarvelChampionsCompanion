@@ -237,6 +237,11 @@ mecánica nueva, el sistema que la resuelve.
   `villainSchemes`): cualquier villano actúa con todas las habilidades de su
   cara. Los accesorios suman ATQ en cualquier ataque del villano (Embestida +3,
   Cuerno de marfil +1; Embestida se descarta al final del ataque).
+- **Sets modulares** (`engine/src/data/modularSets.ts`): grupos de cartas con
+  nombre que se mezclan en el mazo de encuentros de cualquier escenario.
+  `createGame` acepta `modularSetIds` y la selección vive en
+  `GameState.modularSetIds`; la app los ofrece en Inicio. Un esbirro con Dureza
+  impresa entra Resistente por datos (`toughOnEnter`).
 
 ### Determinista y reproducible
 
@@ -271,6 +276,14 @@ pack/caja se verifica al construirlo, nunca de memoria.
   fórmula mutagénica (Duende Verde). Sin sets modulares (igual que el Core).
 - **The Wrecking Crew:** Fuga de prisión (Destructor, Bola de Trueno, Martinete y
   Bulldozer a la vez). Reglas del inserto oficial del pack.
+- **Ronan:** es un **set modular puro** (Fanático Kree, 5 cartas, `kree_fanatic`),
+  no un escenario. Implementado vía el sistema modular (abajo): se puede añadir
+  al mazo de encuentros de cualquier villano desde Inicio.
+- **Sistema de sets modulares** (`engine/src/data/modularSets.ts`): un set
+  modular es una lista de cartas con nombre que se mezcla en el mazo de
+  encuentros. `createGame` acepta `modularSetIds`; la selección se guarda en
+  `GameState.modularSetIds`. La app ofrece un selector en Inicio. Reutilizable
+  por The Hood y todas las cajas de campaña.
 - **Sistemas de motor:** los de §3.
 - **Mazo del pack:** un héroe sin mazo guardado juega con su "mazo del pack"
   (`engine/src/deck/packDeck.ts`): sus cartas propias exactas + las de un aspecto
@@ -291,10 +304,13 @@ pack/caja se verifica al construirlo, nunca de memoria.
 
 1. ~~The Green Goblin (`gob`, 2019-12) — 2 escenarios.~~ **Hecho.**
 2. ~~The Wrecking Crew (`twc`, 2020-02) — cuatro villanos a la vez.~~ **Hecho.**
-3. **Ronan Modular Set** (`ron`, 2020-08) — probablemente MODULAR, no escenario
-   completo. *Verificar; posible tratamiento aparte.* **(Punto de parada.)**
-4. **The Hood** (`hood`, 2021-11) — probablemente MODULAR. *Verificar.*
-   **(Punto de parada.)**
+3. ~~**Ronan Modular Set** (`ron`, 2020-08) — set modular puro (Fanático Kree).~~
+   **Hecho** vía el sistema de sets modulares.
+4. **The Hood** (`hood`, 2021-11) — villano completo (3 estadios + plan
+   principal, 74 cartas) cuyo diseño es **elegir sets modulares** para armar el
+   mazo de encuentros. Ya implementable con el sistema modular. Pendiente:
+   añadir sus cartas y sus ~10 sets modulares (Beasty Boys, Brothers Grimm,
+   Crossfire Crew, Mister Hyde, Sinister Syndicate…).
 5. **MojoMania** (`mojo`, 2022-11). *Verificar.*
 6. **Trickster Takeover** (`tt`, 2025-08). *Verificar.*
 7. **Synthezoid Smackdown** (`synthezoid`, 2025-12). *Verificar.*
@@ -319,7 +335,9 @@ invoca) y obligaciones/identidades de héroe.
 
 ### Sistemas que probablemente habrá que construir
 
-- Sets modulares (Ronan/The Hood y cajas que los usan).
+- Sets modulares: YA existe (ver §3 y Hecho); falta añadir más sets (los de The
+  Hood y las cajas de campaña) y, si se quiere, que un escenario declare sets
+  modulares recomendados o una elección obligatoria (p.ej. The Hood).
 - Varios villanos con contador activo: YA existe; los Seis Siniestros (Sinister
   Motives) deberían reutilizarlo.
 - Sets de némesis y obligaciones (también lado héroe).
@@ -567,6 +585,11 @@ si el esbirro choca con otro igual, no entra y la carta gana Oleada).
 - **Mazos de jugador:** Masacre solo recibe sus cartas propias (sin el aspecto
   "Pool"); el editor valida héroe, aspecto, tamaño y copias, pero no las
   restricciones especiales de ciertas identidades (límites de rasgo o de coste).
+- **Set modular Fanático Kree (Ronan):** en modo árbitro, sus efectos ligados a
+  aliados y a la identidad van guiados. El motor solo modela que Ronan entra con
+  Dureza y que su plan secundario trae su amenaza; el enganche al héroe con menos
+  PG, el +1 ATQ de "El acusado", el descarte de encuentros de "¿Te atreves a
+  oponerte a mí?" y la activación de "Dictar sentencia" se resuelven a mano.
 
 ---
 

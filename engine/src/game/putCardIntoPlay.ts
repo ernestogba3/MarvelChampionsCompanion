@@ -72,7 +72,7 @@ export function putCardIntoPlay(
           health: def.health ?? 1,
           maxHealth: def.health ?? 1,
           engagedWith: playerId,
-          tough: false,
+          tough: def.toughOnEnter ?? false,
           guard: def.guard ?? false,
         };
     return {

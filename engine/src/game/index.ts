@@ -93,6 +93,13 @@ export { canAttackVillain } from "./combat";
 export { CARD_CATALOG, getCardDefinition } from "../data/cards";
 export type { CardDefinition, CardType, EncounterSet } from "../data/cards";
 export {
+  ALL_MODULAR_SETS,
+  MODULAR_SETS,
+  getModularSet,
+  modularSetCards,
+} from "../data/modularSets";
+export type { ModularSet } from "../data/modularSets";
+export {
   validateDeck,
   ASPECT_FACTIONS,
   BASIC_FACTION,
